@@ -21,7 +21,9 @@ namespace Backend.Infrastructure.Repositories
 
             var total = await query.CountAsync(ct);
 
-            var items = await query.OrderBy(e => e.Nombre)
+            // Agrupado por tipo, para que en la vista "Todas" no queden intercalados.
+            var items = await query.OrderBy(e => e.TipoEjercicio.Nombre)
+                             .ThenBy(e => e.Nombre)
                              .ThenBy(e => e.Id)
                              .Skip(skip)
                              .Take(take)
