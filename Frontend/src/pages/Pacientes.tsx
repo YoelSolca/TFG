@@ -36,7 +36,6 @@ function Pacientes() {
   //debouncedSearch se actualiza después de un retraso de 300 ms desde la última vez que el usuario escribió en el campo de búsqueda.
   //setDebouncedSearch se utiliza para actualizar el estado de debouncedSearch después del retraso.
 
-  const token = import.meta.env.VITE_TOKEN_DEV;
 
   //Se ejecuta cada vez que el valor de search cambia, y establece un temporizador para actualizar debouncedSearch después de 300 ms.
   // Esto ayuda a reducir la cantidad de solicitudes de búsqueda mientras el usuario está escribiendo.
@@ -47,7 +46,6 @@ function Pacientes() {
 
   useEffect(() => {
     obtenerPacientes(
-      token,
       debouncedSearch,
       tipoId === "" ? undefined : tipoId,
       page,
@@ -62,7 +60,7 @@ function Pacientes() {
   }, [debouncedSearch, tipoId, page]); // Se ejecuta cada vez que debouncedSearch o tipoId cambian, y realiza la solicitud para obtener los pacientes filtrados según los criterios de búsqueda y tipo de dificultad seleccionados.
 
   useEffect(() => {
-    obtenerTiposDificultad(token)
+    obtenerTiposDificultad()
       .then((response) => {
         setTiposDificultad(response);
       })

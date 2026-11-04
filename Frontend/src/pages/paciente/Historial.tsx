@@ -13,7 +13,6 @@ import {
 import { Box, Card, Chip, Divider, Stack, Typography } from "@mui/material";
 import dayjs from "dayjs";
 import { filtrarHistorialPacientePorTipoEjercicio } from "../../actions/tipoEjercicio.action";
-const token = import.meta.env.VITE_TOKEN_DEV;
 
 export function TypeFilterChips({
   value,
@@ -25,7 +24,7 @@ export function TypeFilterChips({
   const [tipoEjercicio, setTipoEjercicio] = useState<TipoEjercicio[]>([]);
 
   useEffect(() => {
-    filtrarHistorialPacientePorTipoEjercicio(token)
+    filtrarHistorialPacientePorTipoEjercicio()
       .then((response) => {
         console.log("Tipos de ejercicio:", response);
         setTipoEjercicio(response);
@@ -69,7 +68,6 @@ export default function Historial() {
   const [fecha, setFecha] = useState<Date>();
   useEffect(() => {
     obtenerHistorialPaciente(
-      token,
       id!,
       type === "Todas" ? undefined : Number(type),
       fecha,

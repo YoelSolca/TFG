@@ -21,3 +21,31 @@ export interface User {
   role: string;
   token: string;
 }
+
+
+export interface PagedResponse<T> {
+    items:    T[];
+    total:    number;
+    page:     number;
+    pageSize: number;
+}
+
+export interface PsicopedagogoListItem {
+  personaId: number;
+  correoElectronico: string;
+  avatar?: string;
+  matricula: string;
+  nombre: string;
+  apellido: string;
+  fechaSolicitud: string;
+  estado: 'pendiente' | 'aprobado' | 'rechazado' | 'suspendido';
+}
+
+export interface UpdateStateRequest {
+  motivo?: string;
+  estado: 'pendiente' | 'aprobado' | 'rechazado' | 'suspendido';
+}
+
+
+export type PsicopedagogoResponse = PagedResponse<PsicopedagogoListItem>;
+

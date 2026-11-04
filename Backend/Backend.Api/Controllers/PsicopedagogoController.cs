@@ -10,6 +10,13 @@ namespace Backend.Api.Controllers
     [Route("api/[controller]")]
     public class PsicopedagogoController(IPsicopedagogoService psicopedagogoService) : Controller
     {
+
+        [HttpGet()]
+        [ProducesResponseType<PagedResponse<PsicopedagogoDto>>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetAll([FromQuery] PsicopedagogoSearchCriteria criteria, CancellationToken ct = default)
+           => Ok(await psicopedagogoService.GetPsicopedagogosAsync(criteria, ct));
+
         [HttpGet("{psicopedagogoId:int}")]
         [ProducesResponseType<PsicopedagogoDto>(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -34,6 +41,15 @@ namespace Backend.Api.Controllers
         public async Task<IActionResult> UpdateAsync(int psicopedagogoId, UpsertPsicopedagogoRequest request, CancellationToken ct)
         {
             var result = await psicopedagogoService.UpdateAsync(psicopedagogoId, request, ct);
+            return result.IsSuccess ? Ok(result.Value) : ToError(result.Error, result.ErrorCode);
+        }
+
+        [HttpPut("{psicopedagogoId:int}/state")]
+        [ProducesResponseType<PsicopedagogoDto>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateAsync(int psicopedagogoId, UpdateStateRequest request, CancellationToken ct)
+        {
+            var result = await psicopedagogoService.UpdateStateAsync(psicopedagogoId, request, ct);
             return result.IsSuccess ? Ok(result.Value) : ToError(result.Error, result.ErrorCode);
         }
 

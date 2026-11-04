@@ -201,11 +201,10 @@ export default function Informacion() {
   const { id } = useParams();
   const [editing, setEditing] = useState(false);
 
-  const token = import.meta.env.VITE_TOKEN_DEV;
 
   async function guardarCambios() {
     if (form) {
-      guardarCambiosPaciente(token, id!, form)
+      guardarCambiosPaciente(id!, form)
         .then(() => {
           setPaciente(form); // Actualiza el estado del paciente con los datos del formulario
           setEditing(false);

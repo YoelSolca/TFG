@@ -81,11 +81,10 @@ function PatientHeader({
 // Pide el paciente una sola vez y se lo reparte a las pantallas hijas con <Outlet context>.
 export default function PacienteLayout() {
   const { id } = useParams();
-  const token = import.meta.env.VITE_TOKEN_DEV;
   const [paciente, setPaciente] = useState<PacienteDetalle | null>(null);
 
   useEffect(() => {
-    obtenerPacientePorId(token, id!).then(setPaciente).catch(console.error);
+    obtenerPacientePorId(id!).then(setPaciente).catch(console.error);
   }, [id]);
 
   if (!paciente) {

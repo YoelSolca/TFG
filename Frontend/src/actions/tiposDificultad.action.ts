@@ -4,9 +4,9 @@ import { backendApi } from "./api/backendApi";
 
 
 
-export const obtenerTiposDificultad = async (token: string): Promise<TipoDificultad[]> => {
+export const obtenerTiposDificultad = async (): Promise<TipoDificultad[]> => {
   try {
-    const response = await backendApi(token).get("/api/tipos-dificultad");
+    const response = await backendApi().get("/api/tipos-dificultad");
     return response.data;
   } catch (error) {
     console.error("Error al obtener tipos de dificultad:", error);

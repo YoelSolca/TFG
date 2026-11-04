@@ -14,6 +14,36 @@ namespace Backend.Infrastructure.Repositories
             return psicopedagogo;
         }
 
+        public async Task<(IReadOnlyList<Psicopedagogo> Items, int TotalCount)> GetAllPsicopedagogosAsync(PsicopedagogoSearchFilter filter, int skip, int take, CancellationToken ct = default)
+        {
+            var query = context.Psicopedagogo.AsNoTracking()
+                                 .Include(p => p.Persona).ThenInclude(p => p.Usuario)
+                                 .AsQueryable();
+
+            if (!string.IsNullOrEmpty(filter.SearchTerm))
+            {
+                var term = $"%{filter.SearchTerm.Trim()}%";
+                query = query.Where(p => EF.Functions.Like(p.Matricula, term) ||
+                                         EF.Functions.Like(p.Persona.Nombre, term) ||
+                                         EF.Functions.Like(p.Persona.Apellido, term) ||
+                                         EF.Functions.Like(p.Persona.Usuario.CorreoElectronico, term) ||
+                                         EF.Functions.Like(p.Persona.Documento, term));
+            }
+
+            if (filter.Estado is { Length: > 0 })
+                query = query.Where(p => filter.Estado.Contains(p.Persona.Usuario.Estado));
+
+            var total = await query.CountAsync(ct);
+
+            var items = await query.OrderBy(p => p.Persona.Nombre)
+                               .ThenBy(p => p.PersonaId)
+                               .Skip(skip)
+                               .Take(take)
+                               .ToListAsync(ct);
+
+            return (items, total);
+        }
+
         public Task<Psicopedagogo?> GetByPsicopedagogoIdAsync(int psicopedagogoId, CancellationToken ct = default)
             => context.Psicopedagogo.AsNoTracking().Include(p => p.Persona).ThenInclude(p => p.Usuario).FirstOrDefaultAsync(p => p.PersonaId == psicopedagogoId, ct);
 
@@ -22,13 +52,12 @@ namespace Backend.Infrastructure.Repositories
             var existingPsicopedagogo = await context.Psicopedagogo.FirstOrDefaultAsync(p => p.PersonaId == psicopedagogo.PersonaId, ct);
             if (existingPsicopedagogo == null) return;
 
-            existingPsicopedagogo.Avatar = psicopedagogo.Avatar;
-
-            //existingPsicopedagogo.FechaExpiracionTokenRestablecimiento = psicopedagogo.FechaExpiracionTokenRestablecimiento;
-            //existingPsicopedagogo.FechaRecuperacion = psicopedagogo.FechaRecuperacion;
-            //existingPsicopedagogo.FechaCreacion = psicopedagogo.FechaCreacion;
-
             await context.SaveChangesAsync(ct);
         }
+        public Task<Psicopedagogo?> GetForUpdateAsync(int psicopedagogoId, CancellationToken ct = default)
+            => context.Psicopedagogo.Include(p => p.Persona).ThenInclude(p => p.Usuario).FirstOrDefaultAsync(p => p.PersonaId == psicopedagogoId, ct);
+
+        public Task SaveChangesAsync(CancellationToken ct = default)
+            => context.SaveChangesAsync(ct);
     }
 }

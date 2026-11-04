@@ -4,9 +4,9 @@ import { backendApi } from './api/backendApi';
 
 
 
-export const sesionEjercicios = async (token: string, tipoEjercicioId?: number, page:number = 1)  : Promise<EjercicioResponse> => {
+export const sesionEjercicios = async (tipoEjercicioId?: number, page:number = 1)  : Promise<EjercicioResponse> => {
   try {
-    const response = await backendApi(token).get(`/api/ejercicios/`, {
+    const response = await backendApi().get(`/api/ejercicios/`, {
       params: {
         tipoEjercicioId: tipoEjercicioId,
         page: page

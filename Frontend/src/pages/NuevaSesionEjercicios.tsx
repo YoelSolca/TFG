@@ -34,11 +34,10 @@ export default function NuevaSesionEjercicios() {
   const [totalPages, setTotalPages] = useState(1);
   const [type, setType] = useState<string | number>("Todas");
 
-  const token = import.meta.env.VITE_TOKEN_DEV;
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    sesionEjercicios(token, type === "Todas" ? undefined : Number(type), page)
+    sesionEjercicios(type === "Todas" ? undefined : Number(type), page)
       .then((response) => {
         console.log("Ejercicios obtenidos:", response);
         setSesionEjercicio(response.items);

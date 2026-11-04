@@ -13,6 +13,8 @@ import { createContext, ReactNode, useContext, useState } from "react";
 import { User } from "./Model/psicopedagogo.model";
 import Login from "./pages/auth/login";
 import Reset from "./pages/auth/reset";
+import Solicitudes from "./pages/admin/Solicitudes";
+import Profesionales from "./pages/admin/Profesionales";
 
 export const ROLES = { ADMIN: 'Administrador', PRO: 'Psicopedagogo' };
 
@@ -78,6 +80,14 @@ function App() {
           <Route path="restaurar-contraseña" element={<Reset />} />
         </Route>
       </Route>
+
+      <Route path="admin" element={<RequireRole role={ROLES.ADMIN} />}>
+        <Route element={<AppLayout />}>
+          <Route index element={<Solicitudes />} />
+          <Route path="profesionales" element={<Profesionales />} />
+        </Route>
+      </Route>
+
 
       <Route element={<RequireRole role={ROLES.PRO} />}>
         <Route element={<AppLayout />}>
