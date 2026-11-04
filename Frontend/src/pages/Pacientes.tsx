@@ -12,13 +12,14 @@ import {
   Chip,
   Stack,
   TextField,
+  Typography,
   InputAdornment,
   MenuItem,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { formatearEdad } from "../utils/edad";
 import { useNavigate } from "react-router-dom";
-import { PageHeader, TablePager } from "../components/common";
+import { PageHeader, PersonAvatar, TablePager } from "../components/common";
 import SearchIcon from "@mui/icons-material/Search";
 import { obtenerPacientes } from "../actions/pacientes.action";
 import { obtenerTiposDificultad } from "../actions/tiposDificultad.action";
@@ -144,7 +145,16 @@ function Pacientes() {
                 onClick={() => navigate(`/pacientes/${p.id}/informacion`)}
               >
                 <TableCell component="th" scope="row">
-                  {p.nombre} {p.apellido}
+                  <Stack direction="row" spacing={1.5} className="items-center">
+                    <PersonAvatar
+                      initials={p.nombre.charAt(0) + p.apellido.charAt(0)}
+                      size={32}
+                      colorId={p.id}
+                    />
+                    <Typography variant="body2" className="font-medium">
+                      {p.nombre} {p.apellido}
+                    </Typography>
+                  </Stack>
                 </TableCell>
                 <TableCell>{p.documento}</TableCell>
                 <TableCell>{formatearEdad(p.fechaNacimiento)}</TableCell>

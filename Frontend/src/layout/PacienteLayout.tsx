@@ -61,6 +61,7 @@ function PatientHeader({
         <PersonAvatar
           initials={patient.nombre.charAt(0) + patient.apellido.charAt(0)}
           size={56}
+          colorId={patient.id}
         />
         <Box className="flex-1 min-w-40">
           <Typography variant="h5" component="h1">

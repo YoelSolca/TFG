@@ -36,10 +36,10 @@ export default function Sesiones() {
     }, [debouncedSearch, fecha, page]);
 
 
-function NameCell({ initials, name }: { initials: string; name: string }) {
+function NameCell({ initials, name, colorId }: { initials: string; name: string; colorId?: number }) {
   return (
     <Stack direction="row" spacing={1.5} className="items-center">
-      <PersonAvatar initials={initials} size={32} />
+      <PersonAvatar initials={initials} size={32} colorId={colorId} />
       <Typography variant="body2" className="font-medium">{name}</Typography>
     </Stack>
   );
@@ -89,7 +89,7 @@ function NameCell({ initials, name }: { initials: string; name: string }) {
           <TableBody>
             {sessions.map((s) => (
               <TableRow key={s.id} hover onClick={() => navigate(`/sesiones/${s.id}`)} className="cursor-pointer">
-                <TableCell><NameCell initials={s.nombre.charAt(0) + s.apellido.charAt(0)} name={s.nombre + " " + s.apellido} /></TableCell>
+                <TableCell><NameCell initials={s.nombre.charAt(0) + s.apellido.charAt(0)} name={s.nombre + " " + s.apellido} colorId={s.pacienteId} /></TableCell>
                 <TableCell>{s.fecha ? new Date(s.fecha).toLocaleDateString("es-AR") : "-"}</TableCell>
                 <TableCell>
                 {s.fecha

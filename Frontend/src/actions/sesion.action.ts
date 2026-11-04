@@ -1,5 +1,5 @@
 import { EjercicioResponse } from '../Model/ejercicio.model';
-import { ResultadoDetalle, SesionEjerciciosResponse, SesionListItem, SesionResponse } from '../Model/sesion.model';
+import { EjercicioRealizadoResponse, ResultadoDetalle, SesionEjerciciosResponse, SesionListItem, SesionResponse } from '../Model/sesion.model';
 import { backendApi } from './api/backendApi';
 
 
@@ -64,6 +64,24 @@ export const obtenerEjerciciosSesion = async (id: string, page: number = 1): Pro
     return response.data;
   } catch (error) {
     console.error("Error al obtener los ejercicios de la sesión:", error);
+    throw error;
+  }
+}
+
+export const obtenerEjerciciosRealizados = async (page: number, nombreApellido: string, tipoEjercicioId?: number, fecha?: Date): Promise<EjercicioRealizadoResponse> => {
+  try {
+    const response = await backendApi().get(`/api/ejercicios/realizados`, {
+      params: {
+        nombreApellido: nombreApellido,
+        tipoEjercicioId: tipoEjercicioId,
+        page: page,
+        pageSize: 5,
+        fecha: fecha
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error al obtener los ejercicios realizados:", error);
     throw error;
   }
 }

@@ -45,7 +45,7 @@ type NavItem = {
   label: string;
   to: string;
   icon: typeof HomeIcon;
-  match: (p: string) => boolean;
+  match: (p: string, from?: string) => boolean;
   badge?: boolean;
 };
 
@@ -61,14 +61,17 @@ const NAV: NavItem[] = [
     label: "Sesiones",
     to: "/sesiones",
     icon: EventIcon,
-    match: (p: string) =>
-      p.startsWith("/sesiones") && !p.includes("/ejercicios/"),
+    // el detalle de un ejercicio cuenta como Sesiones salvo que se haya llegado desde Ejercicios realizados
+    match: (p: string, from?: string) =>
+      p.startsWith("/sesiones") && !(from === "ejercicios" && p.includes("/ejercicios/")),
   },
   {
     label: "Ejercicios realizados",
     to: "/ejercicios",
     icon: AssignmentIcon,
-    match: (p: string) => p.startsWith("/ejercicios"),
+    // también queda marcado en el detalle de un ejercicio al que se llegó desde esta lista
+    match: (p: string, from?: string) =>
+      p.startsWith("/ejercicios") || (from === "ejercicios" && p.includes("/ejercicios/")),
   },
   {
     label: "Informes",
@@ -133,7 +136,7 @@ function SideNav({
 
       <List disablePadding className="flex flex-col gap-1">
         {nav.map(({ label, to, icon: Icon, match, badge }) => {
-          const selected = match(pathname);
+          const selected = match(pathname, state?.from);
           return (
             <ListItemButton
               key={to}

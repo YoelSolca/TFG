@@ -16,14 +16,24 @@ import AutoStoriesOutlinedIcon from "@mui/icons-material/AutoStoriesOutlined";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
+// Color propio de cada persona, calculado a partir de su id (no se guarda en la BD).
+// 137.5° es el ángulo áureo: ids consecutivos quedan bien separados en la rueda de colores.
+function colorFromId(id: number): [string, string] {
+  const hue = (id * 137.5) % 360;
+  return [`hsl(${hue}, 60%, 88%)`, `hsl(${hue}, 45%, 30%)`];
+}
+
 export function PersonAvatar({
   initials,
   size = 40,
+  colorId,
 }: {
   initials: string;
   size?: number;
+  colorId?: number;
 }) {
-  const [bg, fg] = ["#E6DCF7", "#6B3FA0"];
+  const [bg, fg] =
+    colorId === undefined ? ["#E6DCF7", "#6B3FA0"] : colorFromId(colorId);
   const fontSize = size <= 32 ? 14 : size <= 40 ? 16 : 22;
   return (
     <Avatar

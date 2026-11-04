@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { Alert, Box, Breadcrumbs, Card, Grid, Stack, TextField, Typography } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -15,6 +15,10 @@ export default function EjercicioResultado() {
   const { id, ejercicioId } = useParams();
   const [resultado, setResultado] = useState<ResultadoDetalle | null>(null);
   const [error, setError] = useState(false);
+  const location = useLocation();
+  const fromEjercicios = location.state?.from === "ejercicios";
+  const backTo = fromEjercicios ? "/ejercicios" : `/sesiones/${id}`;
+  const backLabel = fromEjercicios ? "Volver a ejercicios" : "Volver a la sesión";
 
   useEffect(() => {
     obtenerResultadoEjercicio(id!, ejercicioId!)
@@ -41,7 +45,7 @@ export default function EjercicioResultado() {
 
   return (
     <>
-      <BackButton to={`/sesiones/${id}`}>Volver a la sesión</BackButton>
+      <BackButton to={backTo}>{backLabel}</BackButton>
 
       {error && <Alert severity="error">No encontramos este ejercicio en la sesión.</Alert>}
 

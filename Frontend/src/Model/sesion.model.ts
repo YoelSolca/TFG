@@ -51,5 +51,17 @@ export interface ResultadoDetalle {
 }
 
 
+export interface EjercicioRealizadoItem {
+  sesionId: number;
+  ejercicioId: number;
+  pacienteId: number;
+  nombre: string;
+  apellido: string;
+  ejercicio: string;
+  tipoEjercicio: string;
+  fecha: string;
+}
+
+export type EjercicioRealizadoResponse = PagedResponse<EjercicioRealizadoItem>;
 export type SesionResponse = PagedResponse<SesionListItem>;
 export type SesionEjerciciosResponse = PagedResponse<SesionEjercicioItem>;
