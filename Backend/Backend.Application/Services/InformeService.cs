@@ -6,20 +6,38 @@ using Backend.Domain.Interfaces;
 
 namespace Backend.Application.Services
 {
-    public class InformeService(IInformeRepository repository) : IInformeService
+    public class InformeService(IInformeRepository repository, IUsuarioActual usuarioActual) : IInformeService
     {
-        public async Task<Result<IReadOnlyList<InformeDto>>> GetAllAsync(int psicopedagogoId, CancellationToken ct = default)
+        private const int MaxPageSize = 50;
+
+        public async Task<Result<PagedResponse<InformeListItemDto>>> GetAllAsync(InformeSearchCriteria criteria, DateTime? fecha, CancellationToken ct = default)
         {
-            var informes = await repository.GetAllAsync(psicopedagogoId, ct);
-            return Result<IReadOnlyList<InformeDto>>.Success(informes.Select(InformeDto.FromEntity).ToList());
+            var page = Math.Max(criteria.Page, 1);
+            var pageSize = Math.Clamp(criteria.PageSize, 1, MaxPageSize);
+
+            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
+            {
+                return Result<PagedResponse<InformeListItemDto>>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
+            }
+
+            var (items, total) = await repository.GetAllAsync(psicopedagogoId, criteria.NombreApellido, fecha, (page - 1) * pageSize, pageSize, ct);
+
+            return Result<PagedResponse<InformeListItemDto>>.Success(
+                new PagedResponse<InformeListItemDto>(items.Select(InformeListItemDto.FromEntity).ToList(), total, page, pageSize));
         }
 
-        public async Task<Result<InformeDto>> GetByIdAsync(int id, CancellationToken ct = default)
+        public async Task<Result<InformeDetalleDto>> GetByIdAsync(int id, CancellationToken ct = default)
         {
-            var informe = await repository.GetByIdAsync(id, ct);
+            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
+            {
+                return Result<InformeDetalleDto>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
+            }
+
+            // Un informe de otro profesional se informa como inexistente, para no revelar que existe.
+            var informe = await repository.GetByIdAsync(id, psicopedagogoId, ct);
             return informe is null
-                ? Result<InformeDto>.Failure("El informe no existe.", ErrorCodes.NotFound)
-                : Result<InformeDto>.Success(InformeDto.FromEntity(informe));
+                ? Result<InformeDetalleDto>.Failure("El informe no existe.", ErrorCodes.NotFound)
+                : Result<InformeDetalleDto>.Success(InformeDetalleDto.FromEntity(informe));
         }
 
         public async Task<Result<InformeDto>> CreateAsync(int pacienteId, CreateInformeRequest request, CancellationToken ct = default)

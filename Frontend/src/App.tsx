@@ -19,6 +19,8 @@ import Sesiones from "./pages/sesiones/sesiones";
 import SesionEjercicios from "./pages/sesiones/SesionEjercicios";
 import EjercicioResultado from "./pages/sesiones/EjercicioResultado";
 import EjerciciosRealizados from "./pages/sesiones/EjerciciosRealizados";
+import InformesGeneral from "./pages/Informes";
+import InformeDetalle from "./pages/InformeDetalle";
 
 export const ROLES = { ADMIN: 'Administrador', PRO: 'Psicopedagogo' };
 
@@ -103,6 +105,8 @@ function App() {
           </Route>
          <Route path="/sesiones/nueva/ejercicios/:patientId"element={<NuevaSesionEjercicios />}/>
           <Route path="/ejercicios" element={<EjerciciosRealizados />} />
+          <Route path="/informes" element={<InformesGeneral />} />
+          <Route path="/pacientes/:id/informes/:informeId" element={<InformeDetalle />} />
           <Route path="/sesiones" element={<Sesiones />} />
           <Route path="/sesiones/:id" element={<SesionEjercicios />}/>
           <Route path="/sesiones/:id/ejercicios/:ejercicioId/resultado" element={<EjercicioResultado />}/>

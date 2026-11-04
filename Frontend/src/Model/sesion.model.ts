@@ -62,6 +62,31 @@ export interface EjercicioRealizadoItem {
   fecha: string;
 }
 
+export interface InformeListItem {
+  id: number;
+  pacienteId: number;
+  nombre: string;
+  apellido: string;
+  fechaGeneracion: string;
+  periodoDesde: string;
+  periodoHasta: string;
+  resumen: string;
+}
+
+export interface InformeDetalle {
+  id: number;
+  pacienteId: number;
+  nombre: string;
+  apellido: string;
+  documento: string;
+  fechaNacimiento: string | null;
+  fechaGeneracion: string;
+  periodoDesde: string;
+  periodoHasta: string;
+  contenido: string;
+}
+
+export type InformeResponse = PagedResponse<InformeListItem>;
 export type EjercicioRealizadoResponse = PagedResponse<EjercicioRealizadoItem>;
 export type SesionResponse = PagedResponse<SesionListItem>;
 export type SesionEjerciciosResponse = PagedResponse<SesionEjercicioItem>;

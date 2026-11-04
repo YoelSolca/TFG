@@ -25,6 +25,91 @@ namespace Backend.Infrastructure.Data
         {
             await SeedAdministradorAsync(ct);
             await SeedPsicopedagogoAsync(ct);
+            await SeedInformesAsync(ct);
+        }
+
+        private const string ResumenInformeInicial = "Mejoras sostenidas en atención y memoria durante el período.";
+
+        // Resumen (una frase, va en el listado) -> contenido (informe completo, va en el detalle).
+        // {0} es el nombre del paciente.
+        private static readonly Dictionary<string, string> ContenidoPorResumen = new()
+        {
+            [ResumenInformeInicial] =
+                "Durante el último mes, {0} mantuvo una asistencia regular y una buena disposición al trabajo. En los ejercicios de atención el porcentaje de aciertos subió de forma gradual, y en los de memoria logró resolver niveles que al comienzo le resultaban difíciles. Se observa que se distrae menos ante estímulos auditivos cuando la consigna es breve y se da una sola vez. Se sugiere sostener la frecuencia semanal y sumar ejercicios de memoria de trabajo con dificultad creciente.",
+            ["Mejora sostenida en atención y lectura; se observa posible estancamiento en cálculo."] =
+                "Durante el período analizado, {0} mostró una mejora sostenida en las actividades de atención y lectura, con un incremento progresivo en el porcentaje de aciertos sesión a sesión. Sin embargo, se identificó un posible estancamiento en los ejercicios de cálculo: los resultados de las últimas tres sesiones no muestran variación significativa respecto al período anterior, e incluso se observa un leve aumento en el tiempo de resolución. Se sugiere reforzar este eje con actividades de menor complejidad antes de continuar avanzando en el plan actual.",
+            ["Baja participación y menor cantidad de aciertos en las últimas dos sesiones registradas."] =
+                "En las últimas dos sesiones {0} completó menos ejercicios de los previstos y disminuyó la cantidad de aciertos respecto de las sesiones anteriores. Los errores se concentran en la escritura de palabras largas y en las consignas que requieren leer en voz alta. Se registró además cansancio hacia el final de cada sesión. Se recomienda acortar la duración de las sesiones, alternar actividades de lectura con otras más lúdicas y evaluar con la familia posibles factores que estén afectando su motivación.",
+            ["Progreso constante en escritura, sin variaciones significativas respecto al período anterior."] =
+                "{0} continuó trabajando de manera constante en los ejercicios de escritura, con un desempeño estable a lo largo del período. No se observan retrocesos, pero tampoco cambios importantes en la cantidad de errores ortográficos ni en el tiempo que necesita para completar cada actividad. Responde muy bien al refuerzo positivo y se muestra más tranquilo cuando puede anticipar la tarea. Se sugiere introducir textos un poco más extensos y actividades de dictado con vocabulario nuevo para estimular un nuevo avance.",
+            ["Buen desempeño general en memoria; se sugiere reforzar ejercicios de cálculo."] =
+                "En este período {0} tuvo un buen desempeño en las actividades de memoria: recordó secuencias más largas y cometió menos errores en cada intento. En cambio, en cálculo mental se frustra con facilidad ante los errores y suele abandonar la actividad antes de terminarla. Los resultados mejoran cuando las operaciones se presentan de forma gradual y con apoyo visual. Se recomienda reforzar el cálculo con ejercicios de baja complejidad, celebrar los logros parciales y mantener las actividades de memoria como punto de apoyo.",
+            ["Progreso estable en las áreas trabajadas, sin variaciones significativas respecto al período anterior."] =
+                "Durante el período {0} sostuvo un rendimiento estable en todas las áreas trabajadas. Los porcentajes de aciertos se mantienen en valores similares a los del informe anterior, con una leve mejora en los tiempos de respuesta en los ejercicios de atención. Se observa mayor autonomía para iniciar las actividades sin necesidad de apoyo constante. Al ser un período sin grandes cambios, se sugiere revisar los objetivos del plan y evaluar si corresponde aumentar la dificultad de los ejercicios.",
+            ["Primeros avances en comprensión lectora; cuesta la escritura de palabras largas."] =
+                "En este primer período de trabajo {0} comenzó a mostrar avances en la comprensión lectora: logra responder preguntas simples sobre textos cortos y se anima a leer con menos apoyo. La escritura sigue siendo un punto de dificultad, sobre todo con palabras largas, donde omite o invierte sílabas. Se recomienda continuar con lecturas breves y frecuentes, trabajar la escritura por sílabas y proponer dictados cortos, siempre en un clima de confianza que le permita equivocarse sin presión."
+        };
+
+        // Aparte del psicopedagogo para que también complete bases ya sembradas.
+        private async Task SeedInformesAsync(CancellationToken ct)
+        {
+            var psicopedagogoId = await context.Psicopedagogo
+                .Where(p => p.Persona.Documento == DocumentoPsicopedagogo)
+                .Select(p => (int?)p.PersonaId)
+                .FirstOrDefaultAsync(ct);
+            if (psicopedagogoId is null) return;
+
+            // Los informes sembrados antes no tenían resumen y tenían un contenido de relleno: se completan
+            // con el contenido de ejemplo, usando el nombre que tenga hoy el paciente.
+            var existentes = await context.Informe
+                .Include(i => i.Paciente).ThenInclude(p => p.Persona)
+                .Where(i => i.PsicopedagogoId == psicopedagogoId)
+                .ToListAsync(ct);
+            foreach (var informe in existentes)
+            {
+                if (informe.Resumen == "") informe.Resumen = ResumenInformeInicial;
+                if (ContenidoPorResumen.TryGetValue(informe.Resumen, out var plantilla))
+                    informe.Contenido = string.Format(plantilla, informe.Paciente.Persona.Nombre);
+            }
+            await context.SaveChangesAsync(ct);
+
+            // Los informes de ejemplo se agregan una sola vez.
+            if (existentes.Any(i => i.Resumen != ResumenInformeInicial)) return;
+
+            var pacientes = await context.Paciente
+                .Where(p => p.Persona.Documento == "56058870" || p.Persona.Documento == "65221087" || p.Persona.Documento == "54576522")
+                .Select(p => new { p.Persona.Documento, p.PersonaId, p.Persona.Nombre })
+                .ToDictionaryAsync(p => p.Documento, ct);
+
+            var ahora = DateTime.Now;
+            (string Documento, int DiasAtras, int PeriodoDesdeDias, int PeriodoHastaDias, string Resumen)[] ejemplos =
+            [
+                ("56058870", 2, 60, 30, "Mejora sostenida en atención y lectura; se observa posible estancamiento en cálculo."),
+                ("65221087", 5, 45, 15, "Baja participación y menor cantidad de aciertos en las últimas dos sesiones registradas."),
+                ("54576522", 9, 90, 30, "Progreso constante en escritura, sin variaciones significativas respecto al período anterior."),
+                ("54576522", 40, 120, 90, "Buen desempeño general en memoria; se sugiere reforzar ejercicios de cálculo."),
+                ("56058870", 70, 150, 90, "Progreso estable en las áreas trabajadas, sin variaciones significativas respecto al período anterior."),
+                ("65221087", 95, 180, 120, "Primeros avances en comprensión lectora; cuesta la escritura de palabras largas.")
+            ];
+
+            foreach (var (documento, diasAtras, desde, hasta, resumen) in ejemplos)
+            {
+                if (!pacientes.TryGetValue(documento, out var paciente)) continue;
+
+                context.Informe.Add(new Informe
+                {
+                    PacienteId = paciente.PersonaId,
+                    PsicopedagogoId = psicopedagogoId.Value,
+                    FechaGeneracion = ahora.AddDays(-diasAtras),
+                    PeriodoDesde = ahora.AddDays(-desde),
+                    PeriodoHasta = ahora.AddDays(-hasta),
+                    Resumen = resumen,
+                    Contenido = string.Format(ContenidoPorResumen[resumen], paciente.Nombre)
+                });
+            }
+
+            await context.SaveChangesAsync(ct);
+            logger.LogInformation("Informes de desarrollo sembrados.");
         }
 
         private async Task SeedAdministradorAsync(CancellationToken ct)
@@ -99,15 +184,6 @@ namespace Backend.Infrastructure.Data
                 NuevaSesion(ahora.AddDays(-5), EjercicioResuelto(SumasRestas, 12, 5, 130, 17), EjercicioResuelto(SeriesNumericas, 9, 3, 115, 12))));
 
             context.Psicopedagogo.Add(psico);
-            context.Informe.Add(new Informe
-            {
-                Paciente = juan,
-                Psicopedagogo = psico,
-                FechaGeneracion = ahora,
-                PeriodoDesde = ahora.AddDays(-30),
-                PeriodoHasta = ahora,
-                Contenido = "Informe de ejemplo (datos de prueba). Juan muestra mejoras sostenidas en atención y memoria durante el período."
-            });
 
             await context.SaveChangesAsync(ct);
             logger.LogInformation("Datos de desarrollo sembrados (usuario psico@demo.com).");

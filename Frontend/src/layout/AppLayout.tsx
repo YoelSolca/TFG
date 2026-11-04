@@ -55,7 +55,8 @@ const NAV: NavItem[] = [
     label: "Pacientes",
     to: "/pacientes",
     icon: PeopleIcon,
-    match: (p: string) => p.startsWith("/pacientes"),
+    match: (p: string, from?: string) =>
+      p.startsWith("/pacientes") && !(from === "informes" && p.includes("/informes/")),
   },
   {
     label: "Sesiones",
@@ -77,7 +78,9 @@ const NAV: NavItem[] = [
     label: "Informes",
     to: "/informes",
     icon: DescriptionIcon,
-    match: (p: string) => p.startsWith("/informes"),
+    // también queda marcado en el detalle de un informe al que se llegó desde esta lista
+    match: (p: string, from?: string) =>
+      p.startsWith("/informes") || (from === "informes" && p.includes("/informes/")),
   },
 ];
 
