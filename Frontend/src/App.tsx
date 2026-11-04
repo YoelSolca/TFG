@@ -15,6 +15,9 @@ import Login from "./pages/auth/login";
 import Reset from "./pages/auth/reset";
 import Solicitudes from "./pages/admin/Solicitudes";
 import Profesionales from "./pages/admin/Profesionales";
+import Sesiones from "./pages/sesiones/sesiones";
+import SesionEjercicios from "./pages/sesiones/SesionEjercicios";
+import EjercicioResultado from "./pages/sesiones/EjercicioResultado";
 
 export const ROLES = { ADMIN: 'Administrador', PRO: 'Psicopedagogo' };
 
@@ -97,11 +100,13 @@ function App() {
             <Route path="historial" element={<Historial />} />
             <Route path="informes" element={<Informes />} />
           </Route>
-          <Route
-            path="/sesiones/nueva/ejercicios/:patientId"
-            element={<NuevaSesionEjercicios />}
-          />
+         <Route path="/sesiones/nueva/ejercicios/:patientId"element={<NuevaSesionEjercicios />}/>
+          <Route path="/sesiones" element={<Sesiones />} />
+          <Route path="/sesiones/:id" element={<SesionEjercicios />}/>
+          <Route path="/sesiones/:id/ejercicios/:ejercicioId/resultado" element={<EjercicioResultado />}/>
         </Route>
+
+
       </Route>
     </Routes>
   );

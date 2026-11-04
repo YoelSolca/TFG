@@ -6,18 +6,16 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.Api.Controllers
 {
-    [AllowAnonymous]
     [ApiController]
     [Route("api/sesiones/{sesionId:int}/ejercicios/{ejercicioId:int}/resultado")]
     public class ResultadoController(IResultadoService resultadoService) : Controller
     {
         [HttpGet]
-        [ProducesResponseType<ResultadoDto>(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType<ResultadoDetalleDto>(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> Get(int sesionId, int ejercicioId, [FromQuery] int psicopedagogoId, CancellationToken ct)
+        public async Task<IActionResult> Get(int sesionId, int ejercicioId, CancellationToken ct)
         {
-            var result = await resultadoService.GetAsync(sesionId, ejercicioId, psicopedagogoId, ct);
+            var result = await resultadoService.GetAsync(sesionId, ejercicioId, ct);
             return result.IsSuccess ? Ok(result.Value) : ToError(result.Error, result.ErrorCode);
         }
 
@@ -37,6 +35,7 @@ namespace Backend.Api.Controllers
             var status = code switch
             {
                 ErrorCodes.NotFound => StatusCodes.Status404NotFound,
+                ErrorCodes.Unauthorized => StatusCodes.Status401Unauthorized,
                 ErrorCodes.Forbidden => StatusCodes.Status403Forbidden,
                 _ => StatusCodes.Status400BadRequest
             };

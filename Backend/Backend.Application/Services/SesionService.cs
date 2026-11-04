@@ -11,23 +11,61 @@ namespace Backend.Application.Services
         ISesionRepository sesionRepository,
         IPacienteRepository pacienteRepository,
         IEjercicioRepository ejercicioRepository,
-        ILogger<SesionService> logger
+        ILogger<SesionService> logger,
+        IUsuarioActual usuarioActual
         ) : ISesionService
     {
-        public async Task<IReadOnlyList<SesionDto>> GetAllAsync(int psicopedagogoId, int? pacienteId = null, CancellationToken ct = default)
-        {
-            var sesiones = await sesionRepository.GetAllAsync(psicopedagogoId, pacienteId, ct);
 
-            return sesiones.Select(SesionDto.FromEntity).ToList();
+        private const int MaxPageSize = 50;
+
+        public async Task<Result<PagedResponse<SesionListItemDto>>> GetAllAsync(SesionSearchCriteria criteria, DateTime? fecha, CancellationToken ct = default)
+        {
+            var page = Math.Max(criteria.Page, 1);
+            var pageSize = Math.Clamp(criteria.PageSize, 1, MaxPageSize);
+
+            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
+            {
+                return Result<PagedResponse<SesionListItemDto>>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
+            }
+
+            var (items, total) = await sesionRepository.GetAllAsync(psicopedagogoId, criteria.NombreApellido, fecha, (page - 1) * pageSize, pageSize, ct);
+
+            return Result<PagedResponse<SesionListItemDto>>.Success(new PagedResponse<SesionListItemDto>(items.Select(SesionListItemDto.FromEntity).ToList(), total, page, pageSize));
         }
 
-        public async Task<Result<SesionDto>> GetByIdAsync(int id, int psicopedagogoId, CancellationToken ct = default)
+        public async Task<Result<SesionListItemDto>> GetByIdAsync(int id, CancellationToken ct = default)
         {
+            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
+            {
+                return Result<SesionListItemDto>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
+            }
+
             var sesion = await sesionRepository.GetByIdAsync(id, psicopedagogoId, ct);
 
             return sesion is null
-                ? Result<SesionDto>.Failure($"La sesión con ID {id} no fue encontrada.", ErrorCodes.NotFound)
-                : Result<SesionDto>.Success(SesionDto.FromEntity(sesion));
+                ? Result<SesionListItemDto>.Failure($"La sesión con ID {id} no fue encontrada.", ErrorCodes.NotFound)
+                : Result<SesionListItemDto>.Success(SesionListItemDto.FromEntity(sesion));
+        }
+
+        public async Task<Result<PagedResponse<SesionEjercicioItemDto>>> GetEjerciciosAsync(int id, SesionEjerciciosCriteria criteria, CancellationToken ct = default)
+        {
+            var page = Math.Max(criteria.Page, 1);
+            var pageSize = Math.Clamp(criteria.PageSize, 1, MaxPageSize);
+
+            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
+            {
+                return Result<PagedResponse<SesionEjercicioItemDto>>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
+            }
+
+            if (await sesionRepository.GetByIdAsync(id, psicopedagogoId, ct) is null)
+            {
+                return Result<PagedResponse<SesionEjercicioItemDto>>.Failure($"La sesión con ID {id} no fue encontrada.", ErrorCodes.NotFound);
+            }
+
+            var (items, total) = await sesionRepository.GetEjerciciosAsync(id, psicopedagogoId, (page - 1) * pageSize, pageSize, ct);
+
+            return Result<PagedResponse<SesionEjercicioItemDto>>.Success(
+                new PagedResponse<SesionEjercicioItemDto>(items.Select(SesionEjercicioItemDto.FromEntity).ToList(), total, page, pageSize));
         }
 
         public async Task<Result<SesionDto>> AddAsync(CreateSesionRequest sesion, CancellationToken ct = default)

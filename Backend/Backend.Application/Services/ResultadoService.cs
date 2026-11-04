@@ -8,30 +8,35 @@ namespace Backend.Application.Services
 {
     public class ResultadoService(
         IResultadoRepository repository,
-        IMetricaRepository metricaRepository
+        IMetricaRepository metricaRepository,
+        IUsuarioActual usuarioActual
         ) : IResultadoService
     {
-        public async Task<Result<ResultadoDto>> GetAsync(int sesionId, int ejercicioId, int psicopedagogoId, CancellationToken ct = default)
+        public async Task<Result<ResultadoDetalleDto>> GetAsync(int sesionId, int ejercicioId, CancellationToken ct = default)
         {
-            if (!await repository.SesionEjercicioPerteneceAsync(sesionId, ejercicioId, psicopedagogoId, ct))
+            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
             {
-                return Result<ResultadoDto>.Failure(
-                    $"El psicopedagogo {psicopedagogoId} no tiene el ejercicio {ejercicioId} en la sesión {sesionId}.", ErrorCodes.Forbidden);
+                return Result<ResultadoDetalleDto>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
             }
 
-            var resultado = await repository.GetAsync(sesionId, ejercicioId, ct);
+            var detalle = await repository.GetDetalleAsync(sesionId, ejercicioId, psicopedagogoId, ct);
 
-            return resultado is null
-                ? Result<ResultadoDto>.Failure("Todavía no se registró un resultado para ese ejercicio.", ErrorCodes.NotFound)
-                : Result<ResultadoDto>.Success(ResultadoDto.FromEntity(resultado));
+            return detalle is null
+                ? Result<ResultadoDetalleDto>.Failure($"El ejercicio {ejercicioId} no está en la sesión {sesionId}.", ErrorCodes.NotFound)
+                : Result<ResultadoDetalleDto>.Success(ResultadoDetalleDto.FromEntity(detalle));
         }
 
         public async Task<Result<ResultadoDto>> UpsertAsync(int sesionId, int ejercicioId, UpsertResultadoRequest request, CancellationToken ct = default)
         {
-            if (!await repository.SesionEjercicioPerteneceAsync(sesionId, ejercicioId, request.PsicopedagogoId, ct))
+            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
+            {
+                return Result<ResultadoDto>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
+            }
+
+            if (!await repository.SesionEjercicioPerteneceAsync(sesionId, ejercicioId, psicopedagogoId, ct))
             {
                 return Result<ResultadoDto>.Failure(
-                    $"El psicopedagogo {request.PsicopedagogoId} no tiene el ejercicio {ejercicioId} en la sesión {sesionId}.", ErrorCodes.Forbidden);
+                    $"El psicopedagogo {psicopedagogoId} no tiene el ejercicio {ejercicioId} en la sesión {sesionId}.", ErrorCodes.Forbidden);
             }
 
             var metricaIds = (request.Metricas ?? []).Select(m => m.MetricaId).Distinct().ToList();
