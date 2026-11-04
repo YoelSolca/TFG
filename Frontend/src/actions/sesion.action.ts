@@ -25,12 +25,13 @@ export const sesionEjercicios = async (tipoEjercicioId?: number, page:number = 1
 
 
 
-export const obtenerSesiones = async (page: number, nombreApellido: string,  fecha?: Date)  : Promise<SesionResponse> => {
+export const obtenerSesiones = async (page: number, nombreApellido: string,  fecha?: Date, estado?: string)  : Promise<SesionResponse> => {
 
   try {
     const response = await backendApi().get(`/api/sesiones/`, {
       params: {
         nombreApellido: nombreApellido,
+        estado: estado,
         page: page,
         pageSize: 3,
         fecha: fecha
@@ -68,14 +69,14 @@ export const obtenerEjerciciosSesion = async (id: string, page: number = 1): Pro
   }
 }
 
-export const obtenerEjerciciosRealizados = async (page: number, nombreApellido: string, tipoEjercicioId?: number, fecha?: Date): Promise<EjercicioRealizadoResponse> => {
+export const obtenerEjerciciosRealizados = async (page: number, nombreApellido: string, tipoEjercicioId?: number, fecha?: Date, pageSize: number = 5): Promise<EjercicioRealizadoResponse> => {
   try {
     const response = await backendApi().get(`/api/ejercicios/realizados`, {
       params: {
         nombreApellido: nombreApellido,
         tipoEjercicioId: tipoEjercicioId,
         page: page,
-        pageSize: 5,
+        pageSize: pageSize,
         fecha: fecha
       }
     });

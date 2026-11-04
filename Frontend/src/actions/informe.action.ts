@@ -1,13 +1,13 @@
 import { InformeDetalle, InformeResponse } from '../Model/sesion.model';
 import { backendApi } from './api/backendApi';
 
-export const obtenerInformes = async (page: number, nombreApellido: string, fecha?: Date): Promise<InformeResponse> => {
+export const obtenerInformes = async (page: number, nombreApellido: string, fecha?: Date, pageSize: number = 5): Promise<InformeResponse> => {
   try {
     const response = await backendApi().get(`/api/informes`, {
       params: {
         nombreApellido: nombreApellido,
         page: page,
-        pageSize: 5,
+        pageSize: pageSize,
         fecha: fecha
       }
     });

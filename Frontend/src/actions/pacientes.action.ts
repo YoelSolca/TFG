@@ -2,13 +2,13 @@ import { HistorialPacienteResponse, PacientesResponse } from "../Model/paciente.
 import { PacienteDetalle } from "../Model/PacienteDetalle.model";
 import { backendApi } from "./api/backendApi";
 
-export const obtenerPacientes = async (search: string, tipoDificultadId?: number, page: number = 1): Promise<PacientesResponse> => {
+export const obtenerPacientes = async (search: string, tipoDificultadId?: number, page: number = 1, pageSize: number = 10): Promise<PacientesResponse> => {
   try {
     const response = await backendApi().get("/api/pacientes/", {
         params: {
            search: search,
            page: page,
-           pageSize: 10,
+           pageSize: pageSize,
            tipoDificultadId: tipoDificultadId,
         },
     });

@@ -21,6 +21,7 @@ import EjercicioResultado from "./pages/sesiones/EjercicioResultado";
 import EjerciciosRealizados from "./pages/sesiones/EjerciciosRealizados";
 import InformesGeneral from "./pages/Informes";
 import InformeDetalle from "./pages/InformeDetalle";
+import Inicio from "./pages/Inicio";
 
 export const ROLES = { ADMIN: 'Administrador', PRO: 'Psicopedagogo' };
 
@@ -97,7 +98,8 @@ function App() {
 
       <Route element={<RequireRole role={ROLES.PRO} />}>
         <Route element={<AppLayout />}>
-          <Route index element={<Pacientes />} />
+          <Route index element={<Inicio />} />
+          <Route path="/pacientes" element={<Pacientes />} />
           <Route path="/pacientes/:id" element={<PacienteLayout />}>
             <Route path="informacion" element={<Informacion />} />
             <Route path="historial" element={<Historial />} />

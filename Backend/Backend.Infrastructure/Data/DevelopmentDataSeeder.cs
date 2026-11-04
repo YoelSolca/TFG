@@ -26,6 +26,33 @@ namespace Backend.Infrastructure.Data
             await SeedAdministradorAsync(ct);
             await SeedPsicopedagogoAsync(ct);
             await SeedInformesAsync(ct);
+            await SeedSesionesFinalizadasAsync(ct);
+        }
+
+        private Task<int?> PsicopedagogoDemoIdAsync(CancellationToken ct)
+            => context.Psicopedagogo
+                .Where(p => p.Persona.Documento == DocumentoPsicopedagogo)
+                .Select(p => (int?)p.PersonaId)
+                .FirstOrDefaultAsync(ct);
+
+        // Todavía no hay una pantalla que finalice las sesiones: las de prueba, que ya tienen todos sus resultados, se marcan como finalizadas.
+        private async Task SeedSesionesFinalizadasAsync(CancellationToken ct)
+        {
+            var psicopedagogoId = await PsicopedagogoDemoIdAsync(ct);
+            if (psicopedagogoId is null) return;
+
+            var sesiones = await context.Sesion
+                .Where(s => s.PsicopedagogoId == psicopedagogoId
+                         && s.Estado == EstadoSesion.Planificada
+                         && s.SesionEjercicios.Any()
+                         && s.SesionEjercicios.All(se => se.Resultado != null))
+                .ToListAsync(ct);
+            if (sesiones.Count == 0) return;
+
+            foreach (var sesion in sesiones) sesion.Estado = EstadoSesion.Finalizada;
+
+            await context.SaveChangesAsync(ct);
+            logger.LogInformation("Sesiones de desarrollo marcadas como finalizadas: {Cantidad}.", sesiones.Count);
         }
 
         private const string ResumenInformeInicial = "Mejoras sostenidas en atención y memoria durante el período.";
@@ -53,10 +80,7 @@ namespace Backend.Infrastructure.Data
         // Aparte del psicopedagogo para que también complete bases ya sembradas.
         private async Task SeedInformesAsync(CancellationToken ct)
         {
-            var psicopedagogoId = await context.Psicopedagogo
-                .Where(p => p.Persona.Documento == DocumentoPsicopedagogo)
-                .Select(p => (int?)p.PersonaId)
-                .FirstOrDefaultAsync(ct);
+            var psicopedagogoId = await PsicopedagogoDemoIdAsync(ct);
             if (psicopedagogoId is null) return;
 
             // Los informes sembrados antes no tenían resumen y tenían un contenido de relleno: se completan

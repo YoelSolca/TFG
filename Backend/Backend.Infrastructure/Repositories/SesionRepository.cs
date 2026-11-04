@@ -7,13 +7,16 @@ namespace Backend.Infrastructure.Repositories
 {
     public class SesionRepository(AppDbContext context) : ISesionRepository
     {
-        public async Task<(IReadOnlyList<Sesion> Items, int TotalCount)> GetAllAsync(int psicopedagogoId, string? nombreApellido, 
+        public async Task<(IReadOnlyList<Sesion> Items, int TotalCount)> GetAllAsync(int psicopedagogoId, string? nombreApellido, EstadoSesion? estado,
                                                                                     DateTime? fecha, int skip, int take, CancellationToken ct = default)
         {
             var query = context.Sesion.AsNoTracking()
                 .Include(s => s.PsicopedagogoPaciente).ThenInclude(pp => pp.Paciente).ThenInclude(p => p.Persona)
-                .Include(s => s.PsicopedagogoPaciente).ThenInclude(pp => pp.Intervencion)
+                .Include(s => s.PsicopedagogoPaciente).ThenInclude(pp => pp.Intervencion).ThenInclude(i => i.TiposDificultad).ThenInclude(t => t.TipoDificultad)
                 .Where(s => s.PsicopedagogoId == psicopedagogoId);
+
+            if (estado.HasValue)
+                query = query.Where(s => s.Estado == estado);
 
             if (!string.IsNullOrWhiteSpace(nombreApellido))
             {
@@ -43,7 +46,7 @@ namespace Backend.Infrastructure.Repositories
         public async Task<Sesion?> GetByIdAsync(int id, int psicopedagogoId, CancellationToken ct = default)
         => await context.Sesion.AsNoTracking()
             .Include(s => s.PsicopedagogoPaciente).ThenInclude(pp => pp.Paciente).ThenInclude(p => p.Persona)
-            .Include(s => s.PsicopedagogoPaciente).ThenInclude(pp => pp.Intervencion)
+            .Include(s => s.PsicopedagogoPaciente).ThenInclude(pp => pp.Intervencion).ThenInclude(i => i.TiposDificultad).ThenInclude(t => t.TipoDificultad)
             .FirstOrDefaultAsync(s => s.Id == id && s.PsicopedagogoId == psicopedagogoId, ct);
 
         public async Task<(IReadOnlyList<SesionEjercicio> Items, int TotalCount)> GetEjerciciosAsync(int sesionId, int psicopedagogoId, int skip, int take, CancellationToken ct = default)

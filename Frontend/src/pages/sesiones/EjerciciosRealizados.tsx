@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, Chip, InputAdornment, MenuItem, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import dayjs from "dayjs";
+import { formatearCuando } from "../../utils/tiempo";
 import { DateFilter, ExerciseTypeIcon, PageHeader, PersonAvatar, TablePager } from "../../components/common";
 import { obtenerEjerciciosRealizados } from "../../actions/sesion.action";
 import { filtrarHistorialPacientePorTipoEjercicio } from "../../actions/tipoEjercicio.action";
@@ -16,15 +16,6 @@ function NameCell({ initials, name, colorId }: { initials: string; name: string;
       <Typography variant="body2" className="font-medium">{name}</Typography>
     </Stack>
   );
-}
-
-function formatearCuando(fecha: string) {
-  const d = dayjs(fecha);
-  const horas = dayjs().diff(d, "hour");
-  if (horas >= 0 && horas < 24) {
-    return horas < 1 ? "Hace menos de 1 h" : `Hace ${horas} h`;
-  }
-  return d.format("DD/MM/YYYY · HH:mm");
 }
 
 export default function EjerciciosRealizados() {

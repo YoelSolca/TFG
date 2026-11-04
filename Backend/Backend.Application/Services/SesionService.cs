@@ -28,7 +28,7 @@ namespace Backend.Application.Services
                 return Result<PagedResponse<SesionListItemDto>>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
             }
 
-            var (items, total) = await sesionRepository.GetAllAsync(psicopedagogoId, criteria.NombreApellido, fecha, (page - 1) * pageSize, pageSize, ct);
+            var (items, total) = await sesionRepository.GetAllAsync(psicopedagogoId, criteria.NombreApellido, criteria.Estado, fecha, (page - 1) * pageSize, pageSize, ct);
 
             return Result<PagedResponse<SesionListItemDto>>.Success(new PagedResponse<SesionListItemDto>(items.Select(SesionListItemDto.FromEntity).ToList(), total, page, pageSize));
         }

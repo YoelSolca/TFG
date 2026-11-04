@@ -15,6 +15,7 @@ export interface SesionListItem {
   nombre: string;
   apellido: string;
   objetivo: string | null;
+  areas: string[];
 }
 
 export interface SesionEjercicioItem {

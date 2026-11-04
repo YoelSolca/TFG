@@ -9,14 +9,15 @@ public record SesionDto(int Id, int PacienteId, int PsicopedagogoId, DateTime Fe
         s.Id, s.PacienteId, s.PsicopedagogoId, s.Fecha, s.SesionEjercicios.Select(se => se.EjercicioId).ToList());
 }
 
-public record SesionListItemDto(int Id, int PacienteId, string Nombre, string Apellido, DateTime Fecha, string? Objetivo)
+public record SesionListItemDto(int Id, int PacienteId, string Nombre, string Apellido, DateTime Fecha, string? Objetivo, IReadOnlyList<string> Areas)
 {
     public static SesionListItemDto FromEntity(Sesion s) => new(
         s.Id, s.PacienteId,
         s.PsicopedagogoPaciente.Paciente.Persona.Nombre,
         s.PsicopedagogoPaciente.Paciente.Persona.Apellido,
         s.Fecha,
-        s.PsicopedagogoPaciente.Intervencion.objetivo);
+        s.PsicopedagogoPaciente.Intervencion.objetivo,
+        s.PsicopedagogoPaciente.Intervencion.TiposDificultad.Select(t => t.TipoDificultad.Nombre).ToList());
 }
 
 public record SesionEjercicioItemDto(int EjercicioId, string Ejercicio, string TipoEjercicio, string Icono, int Orden, int? TiempoSegundos)
@@ -42,6 +43,7 @@ public record CreateSesionRequest(
 public record SesionSearchCriteria
 (
     string? NombreApellido,
+    EstadoSesion? Estado,
     int Page = 1,
     int PageSize = 3
 );
