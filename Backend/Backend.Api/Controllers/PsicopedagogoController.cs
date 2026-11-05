@@ -35,13 +35,33 @@ namespace Backend.Api.Controllers
             return CreatedAtAction(nameof(GetById), new { psicopedagogoId = result.Value!.PersonaId }, result.Value);
         }
 
-        [HttpPut("{psicopedagogoId:int}")]
-        [ProducesResponseType<PsicopedagogoDto>(StatusCodes.Status200OK)]
+        [HttpGet("me")]
+        [ProducesResponseType<PerfilDto>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> UpdateAsync(int psicopedagogoId, UpsertPsicopedagogoRequest request, CancellationToken ct)
+        public async Task<IActionResult> GetPerfil(CancellationToken ct)
         {
-            var result = await psicopedagogoService.UpdateAsync(psicopedagogoId, request, ct);
+            var result = await psicopedagogoService.GetPerfilAsync(ct);
             return result.IsSuccess ? Ok(result.Value) : ToError(result.Error, result.ErrorCode);
+        }
+
+        [HttpPut("me")]
+        [ProducesResponseType<PerfilDto>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> UpdatePerfil(UpdatePerfilRequest request, CancellationToken ct)
+        {
+            var result = await psicopedagogoService.UpdatePerfilAsync(request, ct);
+            return result.IsSuccess ? Ok(result.Value) : ToError(result.Error, result.ErrorCode);
+        }
+
+        [HttpPut("me/password")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ChangePassword(ChangePasswordRequest request, CancellationToken ct)
+        {
+            var result = await psicopedagogoService.ChangePasswordAsync(request, ct);
+            return result.IsSuccess ? NoContent() : ToError(result.Error, result.ErrorCode);
         }
 
         [HttpPut("{psicopedagogoId:int}/state")]
@@ -58,6 +78,8 @@ namespace Backend.Api.Controllers
             var status = code switch
             {
                 ErrorCodes.NotFound => StatusCodes.Status404NotFound,
+                ErrorCodes.Unauthorized => StatusCodes.Status401Unauthorized,
+                ErrorCodes.Duplicate or ErrorCodes.EmailTaken => StatusCodes.Status409Conflict,
                 _ => StatusCodes.Status400BadRequest
             };
 

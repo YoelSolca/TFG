@@ -47,13 +47,12 @@ namespace Backend.Infrastructure.Repositories
         public Task<Psicopedagogo?> GetByPsicopedagogoIdAsync(int psicopedagogoId, CancellationToken ct = default)
             => context.Psicopedagogo.AsNoTracking().Include(p => p.Persona).ThenInclude(p => p.Usuario).FirstOrDefaultAsync(p => p.PersonaId == psicopedagogoId, ct);
 
-        public async Task UpdateAsync(Psicopedagogo psicopedagogo, CancellationToken ct = default)
-        {
-            var existingPsicopedagogo = await context.Psicopedagogo.FirstOrDefaultAsync(p => p.PersonaId == psicopedagogo.PersonaId, ct);
-            if (existingPsicopedagogo == null) return;
+        public Task<bool> EmailTakenByOtherAsync(int personaId, string correoElectronico, CancellationToken ct = default)
+            => context.Usuario.AsNoTracking().AnyAsync(u => u.CorreoElectronico == correoElectronico && u.PersonaId != personaId, ct);
 
-            await context.SaveChangesAsync(ct);
-        }
+        public Task<bool> DocumentoTakenByOtherAsync(int personaId, string documento, CancellationToken ct = default)
+            => context.Persona.AsNoTracking().AnyAsync(p => p.Documento == documento && p.Id != personaId, ct);
+
         public Task<Psicopedagogo?> GetForUpdateAsync(int psicopedagogoId, CancellationToken ct = default)
             => context.Psicopedagogo.Include(p => p.Persona).ThenInclude(p => p.Usuario).FirstOrDefaultAsync(p => p.PersonaId == psicopedagogoId, ct);
 

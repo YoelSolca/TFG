@@ -196,7 +196,7 @@ function SideNav({
         </Avatar>
         <Box>
           <Typography variant="body2" className="font-medium">
-            {"Pia"} {"Martinez"}
+            {user?.name}
           </Typography>
           <Typography variant="caption" className="opacity-72">
             {"Lic. Psicopedagogía"}
@@ -209,6 +209,7 @@ function SideNav({
 
 export default function AppLayout() {
   const theme = useTheme();
+  const { user } = useAuth();
 
   // Detecta si la pantalla es de tamaño móvil utilizando el hook useMediaQuery y el tema de Material-UI.
   const mobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -253,13 +254,16 @@ export default function AppLayout() {
                     <MenuIcon />
                   </IconButton>
                 )}
-                <Button
-                  startIcon={<PersonIcon />}
-                  component={RouterLink}
-                  to="/perfil"
-                >
-                  Perfil
-                </Button>
+                {/* El perfil es de psicopedagogos: el administrador no tiene esos datos. */}
+                {user?.role !== ROLES.ADMIN && (
+                  <Button
+                    startIcon={<PersonIcon />}
+                    component={RouterLink}
+                    to="/perfil"
+                  >
+                    Perfil
+                  </Button>
+                )}
                 <Tooltip title="Cerrar sesión">
                   <IconButton aria-label="Cerrar sesión">
                     <LogoutIcon />

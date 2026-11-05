@@ -47,5 +47,35 @@ export interface UpdateStateRequest {
 }
 
 
+export interface PerfilPsicopedagogo {
+  personaId: number;
+  nombre: string;
+  apellido: string;
+  documento: string;
+  telefono: string;
+  genero: string | null;
+  fechaNacimiento: string | null;
+  correoElectronico: string;
+  matricula: string;
+  avatar: string | null;
+  estado: string;
+}
+
+export interface UpdatePerfilRequest {
+  nombre: string;
+  apellido: string;
+  documento: string;
+  telefono: string;
+  genero: string;
+  fechaNacimiento: string;
+  correoElectronico: string;
+  contraseniaActual?: string;
+}
+
+export interface ChangePasswordRequest {
+  contraseniaActual: string;
+  nuevaContrasenia: string;
+}
+
 export type PsicopedagogoResponse = PagedResponse<PsicopedagogoListItem>;
 

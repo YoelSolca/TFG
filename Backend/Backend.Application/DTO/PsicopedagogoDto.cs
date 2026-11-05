@@ -28,10 +28,33 @@ public record CreatePsicopedagogoRequest(
     DateTime FechaAlta
 );
 
-public record UpsertPsicopedagogoRequest(
-    [Required, StringLength(50)] string CorreoElectronico,
-    [Required, StringLength(16)] string Contrasenia,
-    [StringLength(250)]string? Avatar
+// Lo que muestra la pantalla de perfil: los datos personales y de la cuenta del psicopedagogo logueado.
+public record PerfilDto(
+    int PersonaId, string Nombre, string Apellido, string Documento, string Telefono,
+    string? Genero, DateOnly? FechaNacimiento, string CorreoElectronico, string Matricula, string? Avatar,
+    [property: JsonConverter(typeof(JsonStringEnumConverter))] EstadoCuenta Estado)
+{
+    public static PerfilDto FromEntity(Psicopedagogo p) => new(
+        p.PersonaId, p.Persona.Nombre, p.Persona.Apellido, p.Persona.Documento, p.Telefono,
+        p.Persona.Genero, p.Persona.FechaNacimiento, p.Persona.Usuario.CorreoElectronico, p.Matricula, p.Avatar,
+        p.Persona.Usuario.Estado);
+}
+
+// La matrícula no se puede cambiar desde acá. ContraseniaActual solo hace falta si se cambia el correo.
+public record UpdatePerfilRequest(
+    [Required, StringLength(100)] string Nombre,
+    [Required, StringLength(100)] string Apellido,
+    [Required, RegularExpression(@"^\d{6,9}$", ErrorMessage = "El documento debe tener entre 6 y 9 dígitos.")] string Documento,
+    [Required, RegularExpression(@"^[\d\s-]{8,20}$", ErrorMessage = "Teléfono inválido.")] string Telefono,
+    [Required, RegularExpression("^[FMO]$", ErrorMessage = "El género debe ser F, M u O.")] string Genero,
+    [Required] DateOnly FechaNacimiento,
+    [Required, EmailAddress, StringLength(50)] string CorreoElectronico,
+    string? ContraseniaActual
+);
+
+public record ChangePasswordRequest(
+    [Required] string ContraseniaActual,
+    [Required, RegularExpression(ReglasContrasenia.Patron, ErrorMessage = ReglasContrasenia.Mensaje)] string NuevaContrasenia
 );
 
 

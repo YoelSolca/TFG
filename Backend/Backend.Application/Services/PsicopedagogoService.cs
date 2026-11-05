@@ -73,34 +73,117 @@ namespace Backend.Application.Services
         }
 
 
-        public async Task<Result<PsicopedagogoDto>> UpdateAsync(int psicopedagogoId, UpsertPsicopedagogoRequest request, CancellationToken ct = default)
+        public async Task<Result<PerfilDto>> GetPerfilAsync(CancellationToken ct = default)
         {
-            var existing = await repository.GetByPsicopedagogoIdAsync(psicopedagogoId, ct);
-
-            if(existing is null)
+            if (usuarioActual.PsicopedagogoId is not int id)
             {
-                return Result<PsicopedagogoDto>.Failure($"Psicopedagogo con el id {psicopedagogoId} no fue encontrado.");
+                return Result<PerfilDto>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
             }
 
-            var psicopedagogo = new Psicopedagogo
+            var psicopedagogo = await repository.GetByPsicopedagogoIdAsync(id, ct);
+
+            return psicopedagogo is null
+                ? Result<PerfilDto>.Failure("No se encontró tu perfil.", ErrorCodes.NotFound)
+                : Result<PerfilDto>.Success(PerfilDto.FromEntity(psicopedagogo));
+        }
+
+        public async Task<Result<PerfilDto>> UpdatePerfilAsync(UpdatePerfilRequest request, CancellationToken ct = default)
+        {
+            if (usuarioActual.PsicopedagogoId is not int id)
             {
-                PersonaId = psicopedagogoId,
-                Avatar = request.Avatar,
+                return Result<PerfilDto>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
+            }
 
-                Persona = new Persona
+            var psicopedagogo = await repository.GetForUpdateAsync(id, ct);
+            if (psicopedagogo is null)
+            {
+                return Result<PerfilDto>.Failure("No se encontró tu perfil.", ErrorCodes.NotFound);
+            }
+
+            var persona = psicopedagogo.Persona;
+            var usuario = persona.Usuario;
+
+            var correo = request.CorreoElectronico.Trim().ToLowerInvariant();
+            var documento = request.Documento.Trim();
+            var telefono = new string(request.Telefono.Where(char.IsDigit).ToArray());
+
+            if (telefono.Length is < 8 or > 13)
+            {
+                return Result<PerfilDto>.Failure("Teléfono inválido.", ErrorCodes.ValidationError);
+            }
+
+            if (request.FechaNacimiento > DateOnly.FromDateTime(DateTime.Today))
+            {
+                return Result<PerfilDto>.Failure("La fecha de nacimiento no puede ser futura.", ErrorCodes.ValidationError);
+            }
+
+            // El correo es con lo que se entra y se recupera la cuenta: para cambiarlo hay que confirmar la contraseña.
+            if (!string.Equals(usuario.CorreoElectronico, correo, StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.IsNullOrEmpty(request.ContraseniaActual) || !contraseniaHasher.Verify(request.ContraseniaActual, usuario.Contrasenia))
                 {
-                    Usuario = new Usuario
-                    {
-                        CorreoElectronico = request.CorreoElectronico,
-                        Contrasenia = contraseniaHasher.Hash(request.Contrasenia)
-                    }
+                    return Result<PerfilDto>.Failure("Para cambiar el correo ingresá tu contraseña actual.", ErrorCodes.InvalidCredentials);
                 }
-            };
 
-            await repository.UpdateAsync(psicopedagogo, ct);
+                if (await repository.EmailTakenByOtherAsync(id, correo, ct))
+                {
+                    return Result<PerfilDto>.Failure("Ese correo electrónico ya está en uso.", ErrorCodes.EmailTaken);
+                }
+            }
 
-            logger.LogInformation("Psicopedagogo con id {PsicopedagogoId} actualizado exitosamente.", psicopedagogoId);
-            return Result<PsicopedagogoDto>.Success( PsicopedagogoDto.FromEntity(psicopedagogo));
+            if (documento != persona.Documento && await repository.DocumentoTakenByOtherAsync(id, documento, ct))
+            {
+                return Result<PerfilDto>.Failure("Ya existe una persona registrada con ese documento.", ErrorCodes.Duplicate);
+            }
+
+            persona.Nombre = request.Nombre.Trim();
+            persona.Apellido = request.Apellido.Trim();
+            persona.Documento = documento;
+            persona.Genero = request.Genero;
+            persona.FechaNacimiento = request.FechaNacimiento;
+            psicopedagogo.Telefono = telefono;
+            usuario.CorreoElectronico = correo;
+
+            await repository.SaveChangesAsync(ct);
+
+            logger.LogInformation("Perfil del psicopedagogo {PsicopedagogoId} actualizado.", id);
+            return Result<PerfilDto>.Success(PerfilDto.FromEntity(psicopedagogo));
+        }
+
+        public async Task<Result<bool>> ChangePasswordAsync(ChangePasswordRequest request, CancellationToken ct = default)
+        {
+            if (usuarioActual.PsicopedagogoId is not int id)
+            {
+                return Result<bool>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
+            }
+
+            var psicopedagogo = await repository.GetForUpdateAsync(id, ct);
+            if (psicopedagogo is null)
+            {
+                return Result<bool>.Failure("No se encontró tu perfil.", ErrorCodes.NotFound);
+            }
+
+            var usuario = psicopedagogo.Persona.Usuario;
+
+            if (!contraseniaHasher.Verify(request.ContraseniaActual, usuario.Contrasenia))
+            {
+                return Result<bool>.Failure("La contraseña actual es incorrecta.", ErrorCodes.InvalidCredentials);
+            }
+
+            if (request.NuevaContrasenia == request.ContraseniaActual)
+            {
+                return Result<bool>.Failure("La nueva contraseña debe ser distinta de la actual.", ErrorCodes.ValidationError);
+            }
+
+            usuario.Contrasenia = contraseniaHasher.Hash(request.NuevaContrasenia);
+            // Si había un enlace de recuperación pendiente, deja de servir.
+            usuario.TokenRestablecimiento = null;
+            usuario.FechaExpiracionTokenRestablecimiento = DateTime.MinValue;
+
+            await repository.SaveChangesAsync(ct);
+
+            logger.LogInformation("El psicopedagogo {PsicopedagogoId} cambió su contraseña.", id);
+            return Result<bool>.Success(true);
         }
 
         public async Task<Result<PsicopedagogoDto>> UpdateStateAsync(int psicopedagogoId, UpdateStateRequest request, CancellationToken ct = default)
