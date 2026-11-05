@@ -10,6 +10,16 @@ import { BackButton } from "../../components/common";
 import { obtenerResultadoEjercicio } from "../../actions/sesion.action";
 import { ResultadoDetalle } from "../../Model/sesion.model";
 import { formatearTiempo } from "../../utils/tiempo";
+import { ResultadoJuego } from "../juegos/tipos";
+
+const ETIQUETAS_METRICAS: Record<string, string> = {
+  movimientos: "Movimientos",
+  omisiones: "Omisiones",
+  pistas: "Pistas usadas",
+};
+
+const etiquetaMetrica = (nombre: string) =>
+  ETIQUETAS_METRICAS[nombre] ?? nombre.charAt(0).toUpperCase() + nombre.slice(1);
 
 export default function EjercicioResultado() {
   const { id, ejercicioId } = useParams();
@@ -27,20 +37,34 @@ export default function EjercicioResultado() {
   }, [id, ejercicioId]);
 
   const registrado = resultado?.registrado ?? false;
-  // "Movimientos" viene como una métrica más del resultado
-  const movimientos = resultado?.metricas.find((m) => m.nombre === "movimientos")?.valor;
+  // Resultado que el juego acaba de producir y que (por ahora) no se guardó en la base.
+  const delJuego: ResultadoJuego | undefined = location.state?.resultadoJuego;
+  const sinGuardar = !registrado && delJuego !== undefined;
+  const hayDatos = registrado || sinGuardar;
+
+  const aciertos = registrado ? resultado?.aciertos : delJuego?.aciertos;
+  const errores = registrado ? resultado?.errores : delJuego?.errores;
+  const tiempoSegundos = registrado ? resultado?.tiempoSegundos : delJuego?.tiempoSegundos;
+  // Solo se muestran las métricas que el ejercicio evalúa (las que vienen en el resultado).
+  const metricas = registrado ? (resultado?.metricas ?? []) : (delJuego?.metricas ?? []);
 
   const stats = [
-    { label: "Aciertos", icon: CheckCircleIcon, bg: "#E8F5E9", color: "#2E7D32", value: resultado?.aciertos },
-    { label: "Error", icon: CancelIcon, bg: "#FDECEA", color: "#C62828", value: resultado?.errores },
+    { label: "Aciertos", icon: CheckCircleIcon, bg: "#E8F5E9", color: "#2E7D32", value: aciertos },
+    { label: "Error", icon: CancelIcon, bg: "#FDECEA", color: "#C62828", value: errores },
     {
       label: "Tiempo",
       icon: AccessTimeIcon,
       bg: "#E3F2FD",
       color: "#1565C0",
-      value: resultado?.tiempoSegundos == null ? undefined : formatearTiempo(resultado.tiempoSegundos),
+      value: tiempoSegundos == null ? undefined : formatearTiempo(tiempoSegundos),
     },
-    { label: "Movimientos", icon: ShowChartIcon, bg: "#F3E8FD", color: "#6A1B9A", value: movimientos },
+    ...metricas.map((m) => ({
+      label: etiquetaMetrica(m.nombre),
+      icon: ShowChartIcon,
+      bg: "#F3E8FD",
+      color: "#6A1B9A",
+      value: m.valor,
+    })),
   ];
 
   return (
@@ -63,11 +87,12 @@ export default function EjercicioResultado() {
             </Typography>
           </Box>
 
-          {!registrado && <Alert severity="info">Este ejercicio todavía no tiene un resultado registrado.</Alert>}
+          {sinGuardar && <Alert severity="info">Resultado de prueba: todavía no se guardó en la base.</Alert>}
+          {!hayDatos && <Alert severity="info">Este ejercicio todavía no tiene un resultado registrado.</Alert>}
 
           <Grid container spacing={3}>
             {stats.map(({ label, icon: Icon, bg, color, value }) => (
-              <Grid key={label} size={{ xs: 12, sm: 6, md: 3 }}>
+              <Grid key={label} size={{ xs: 12, sm: 6, md: stats.length >= 4 ? 3 : 4 }}>
                 <Card className="p-5">
                   <Stack direction="row" className="justify-between items-start">
                     <Typography variant="body2" color="text.secondary">{label}</Typography>
@@ -75,7 +100,7 @@ export default function EjercicioResultado() {
                       <Icon fontSize="small" />
                     </Box>
                   </Stack>
-                  <Typography className="text-[32px] font-bold mt-2">{registrado && value != null ? value : "-"}</Typography>
+                  <Typography className="text-[32px] font-bold mt-2">{hayDatos && value != null ? value : "-"}</Typography>
                 </Card>
               </Grid>
             ))}

@@ -1,5 +1,6 @@
 import { EjercicioResponse } from '../Model/ejercicio.model';
-import { EjercicioRealizadoResponse, ResultadoDetalle, SesionEjerciciosResponse, SesionListItem, SesionResponse } from '../Model/sesion.model';
+import { EjercicioRealizadoResponse, ResultadoDetalle, ResultadoRequest, SesionEjerciciosResponse, SesionListItem, SesionPlan, SesionResponse } from '../Model/sesion.model';
+import axios from 'axios';
 import { backendApi } from './api/backendApi';
 
 
@@ -24,6 +25,33 @@ export const sesionEjercicios = async (tipoEjercicioId?: number, page:number = 1
 
 
 
+
+// El plan guardado del paciente; null si no tiene (el servidor responde 404).
+export const obtenerPlanSesion = async (pacienteId: string): Promise<SesionPlan | null> => {
+  try {
+    const response = await backendApi().get(`/api/sesiones/planificada`, { params: { pacienteId } });
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) return null;
+    console.error("Error al obtener el plan de la sesión:", error);
+    throw error;
+  }
+}
+
+export const crearSesion = async (pacienteId: number, ejercicioIds: number[]): Promise<SesionPlan> => {
+  const response = await backendApi().post(`/api/sesiones`, { pacienteId, ejercicioIds });
+  return response.data;
+}
+
+export const actualizarSesion = async (id: number, ejercicioIds: number[]): Promise<SesionPlan> => {
+  const response = await backendApi().put(`/api/sesiones/${id}`, { ejercicioIds });
+  return response.data;
+}
+
+export const iniciarSesion = async (id: number): Promise<SesionPlan> => {
+  const response = await backendApi().post(`/api/sesiones/${id}/iniciar`);
+  return response.data;
+}
 
 export const obtenerSesiones = async (page: number, nombreApellido: string,  fecha?: Date, estado?: string)  : Promise<SesionResponse> => {
 
@@ -85,6 +113,10 @@ export const obtenerEjerciciosRealizados = async (page: number, nombreApellido: 
     console.error("Error al obtener los ejercicios realizados:", error);
     throw error;
   }
+}
+
+export const guardarResultado = async (sesionId: string, ejercicioId: string, resultado: ResultadoRequest): Promise<void> => {
+  await backendApi().put(`/api/sesiones/${sesionId}/ejercicios/${ejercicioId}/resultado`, resultado);
 }
 
 export const obtenerResultadoEjercicio = async (sesionId: string, ejercicioId: string): Promise<ResultadoDetalle> => {

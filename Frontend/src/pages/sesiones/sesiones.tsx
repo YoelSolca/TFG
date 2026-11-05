@@ -5,11 +5,12 @@ import { useEffect, useState } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 import { obtenerSesiones } from "../../actions/sesion.action";
 import { DateFilter, PageHeader, PersonAvatar, TablePager } from "../../components/common";
+import NuevaSesionDialog from "../../components/NuevaSesionDialog";
 import { SesionListItem } from "../../Model/sesion.model";
 
 export default function Sesiones() {
     const navigate = useNavigate();
-    const [, setCreating] = useState(false);
+    const [creating, setCreating] = useState(false);
     const [sessions, setSessions] = useState<SesionListItem[]>([]);
     const [search, setSearch] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -52,7 +53,8 @@ function NameCell({ initials, name, colorId }: { initials: string; name: string;
         subtitle="Todas las sesiones registradas"
         action={<Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreating(true)}>Nueva sesión</Button>}
       />
-      
+      <NuevaSesionDialog open={creating} onClose={() => setCreating(false)} />
+
      <Stack direction="row" useFlexGap className="gap-4 flex-wrap justify-between">
        <TextField
           size="small"

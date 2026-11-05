@@ -8,6 +8,16 @@ export interface PagedResponse<T> {
 }
 
 
+// Sesión tal como la devuelve el alta/edición/estado: los ejercicios van en el orden en que se hacen.
+export interface SesionPlan {
+  id: number;
+  pacienteId: number;
+  psicopedagogoId: number;
+  fecha: string;
+  estado: string;
+  ejercicioIds: number[];
+}
+
 export interface SesionListItem {
   id: number;
   pacienteId: number;
@@ -33,6 +43,15 @@ export interface MetricaValor {
   nombre: string;
   valor: number;
   unidad: string | null;
+}
+
+// Lo que se manda para registrar (o reemplazar) el resultado de un ejercicio de la sesión.
+export interface ResultadoRequest {
+  aciertos: number;
+  errores: number;
+  tiempoSegundos: number | null;
+  observaciones: string | null;
+  metricas: { metricaId: number; valor: number }[];
 }
 
 export interface ResultadoDetalle {

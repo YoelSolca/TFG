@@ -71,22 +71,39 @@ namespace Backend.Infrastructure.Repositories
             return sesion;
         }
 
-        public async Task<Sesion?> AgregarEjerciciosAsync(int sesionId, int psicopedagogoId, IEnumerable<int> ejercicioIds, CancellationToken ct = default)
-        {
-            var sesion = await context.Sesion
+        public async Task<Sesion?> GetPlanificadaAsync(int pacienteId, int psicopedagogoId, CancellationToken ct = default)
+            => await context.Sesion.AsNoTracking()
                 .Include(s => s.SesionEjercicios)
-                .FirstOrDefaultAsync(s => s.Id == sesionId && s.PsicopedagogoId == psicopedagogoId, ct);
+                .FirstOrDefaultAsync(s => s.PacienteId == pacienteId && s.PsicopedagogoId == psicopedagogoId
+                                       && s.Estado == EstadoSesion.Planificada, ct);
 
-            if (sesion is null)
-                return null;
+        public async Task SaveChangesAsync(CancellationToken ct = default)
+            => await context.SaveChangesAsync(ct);
 
-            var yaCargados = sesion.SesionEjercicios.Select(se => se.EjercicioId).ToHashSet();
+        public async Task<Sesion?> GetForUpdateAsync(int id, int psicopedagogoId, CancellationToken ct = default)
+            => await context.Sesion
+                .Include(s => s.SesionEjercicios).ThenInclude(se => se.Resultado)
+                .FirstOrDefaultAsync(s => s.Id == id && s.PsicopedagogoId == psicopedagogoId, ct);
 
-            foreach (var ejercicioId in ejercicioIds.Where(id => !yaCargados.Contains(id)))
-                sesion.SesionEjercicios.Add(new SesionEjercicio { SesionId = sesionId, EjercicioId = ejercicioId });
+        public async Task ReemplazarEjerciciosAsync(Sesion sesion, IReadOnlyList<int> ejercicioIds, CancellationToken ct = default)
+        {
+            // Los que ya no están en la lista se borran explícitamente: sacarlos de la colección no alcanza
+            // porque la relación con la sesión es Restrict.
+            var aQuitar = sesion.SesionEjercicios.Where(se => !ejercicioIds.Contains(se.EjercicioId)).ToList();
+            context.SesionEjercicio.RemoveRange(aQuitar);
+
+            for (var i = 0; i < ejercicioIds.Count; i++)
+            {
+                var ejercicioId = ejercicioIds[i];
+                var existente = sesion.SesionEjercicios.FirstOrDefault(se => se.EjercicioId == ejercicioId);
+
+                if (existente is null)
+                    sesion.SesionEjercicios.Add(new SesionEjercicio { SesionId = sesion.Id, EjercicioId = ejercicioId, Orden = i + 1 });
+                else
+                    existente.Orden = i + 1;
+            }
 
             await context.SaveChangesAsync(ct);
-            return sesion;
         }
     }
 }

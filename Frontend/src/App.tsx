@@ -18,6 +18,7 @@ import Profesionales from "./pages/admin/Profesionales";
 import Sesiones from "./pages/sesiones/sesiones";
 import SesionEjercicios from "./pages/sesiones/SesionEjercicios";
 import EjercicioResultado from "./pages/sesiones/EjercicioResultado";
+import EjercicioJuego from "./pages/sesiones/EjercicioJuego";
 import EjerciciosRealizados from "./pages/sesiones/EjerciciosRealizados";
 import InformesGeneral from "./pages/Informes";
 import InformeDetalle from "./pages/InformeDetalle";
@@ -113,6 +114,7 @@ function App() {
           <Route path="/pacientes/:id/informes/:informeId" element={<InformeDetalle />} />
           <Route path="/sesiones" element={<Sesiones />} />
           <Route path="/sesiones/:id" element={<SesionEjercicios />}/>
+          <Route path="/sesiones/:id/ejercicios/:ejercicioId" element={<EjercicioJuego />}/>
           <Route path="/sesiones/:id/ejercicios/:ejercicioId/resultado" element={<EjercicioResultado />}/>
         </Route>
 

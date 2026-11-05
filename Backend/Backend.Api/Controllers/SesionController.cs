@@ -43,9 +43,9 @@ namespace Backend.Api.Controllers
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-        public async Task<IActionResult> Create(CreateSesionRequest request)
+        public async Task<IActionResult> Create(CreateSesionRequest request, CancellationToken ct)
         {
-            var result = await sesionService.AddAsync(request);
+            var result = await sesionService.AddAsync(request, ct);
 
             return result.IsSuccess
                 ? CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, result.Value)
@@ -58,13 +58,40 @@ namespace Backend.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-        public async Task<IActionResult> Update(int id, [FromQuery] int psicopedagogoId, UpsertSesionRequest request)
+        public async Task<IActionResult> Update(int id, UpsertSesionRequest request, CancellationToken ct)
         {
-            var result = await sesionService.UpdateAsync(id, psicopedagogoId, request);
+            var result = await sesionService.UpdateAsync(id, request, ct);
 
             return result.IsSuccess
-                ? Ok(result)
+                ? Ok(result.Value)
                 : ToError(result.Error, result.ErrorCode);
+        }
+
+        [HttpGet("planificada")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetPlanificada([FromQuery] int pacienteId, CancellationToken ct)
+        {
+            var result = await sesionService.GetPlanificadaAsync(pacienteId, ct);
+            return result.IsSuccess ? Ok(result.Value) : ToError(result.Error, result.ErrorCode);
+        }
+
+        [HttpPost("{id:int}/iniciar")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> Iniciar(int id, CancellationToken ct)
+        {
+            var result = await sesionService.IniciarAsync(id, ct);
+            return result.IsSuccess ? Ok(result.Value) : ToError(result.Error, result.ErrorCode);
+        }
+
+        [HttpPost("{id:int}/finalizar")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> Finalizar(int id, CancellationToken ct)
+        {
+            var result = await sesionService.FinalizarAsync(id, ct);
+            return result.IsSuccess ? Ok(result.Value) : ToError(result.Error, result.ErrorCode);
         }
 
         private ObjectResult ToError(string? error, string? code)

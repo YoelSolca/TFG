@@ -70,13 +70,26 @@ namespace Backend.Application.Services
 
         public async Task<Result<SesionDto>> AddAsync(CreateSesionRequest sesion, CancellationToken ct = default)
         {
-            var atencion = await pacienteRepository.GetAtencionAsync(sesion.PacienteId, sesion.PsicopedagogoId, ct);
+            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
+            {
+                return Result<SesionDto>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
+            }
+
+            var atencion = await pacienteRepository.GetAtencionAsync(sesion.PacienteId, psicopedagogoId, ct);
 
             if (atencion is null || atencion.FechaFin is not null)
             {
                 return Result<SesionDto>.Failure(
-                    $"El psicopedagogo {sesion.PsicopedagogoId} no atiende actualmente al paciente {sesion.PacienteId}.",
+                    $"No atendés actualmente al paciente {sesion.PacienteId}.",
                     ErrorCodes.Forbidden);
+            }
+
+            // Un paciente tiene a lo sumo un plan guardado: para cambiarlo se edita (PUT), no se crea otro.
+            if (await sesionRepository.GetPlanificadaAsync(sesion.PacienteId, psicopedagogoId, ct) is not null)
+            {
+                return Result<SesionDto>.Failure(
+                    $"El paciente {sesion.PacienteId} ya tiene una sesión planificada. Modificala o iniciala.",
+                    ErrorCodes.Duplicate);
             }
 
             var ejercicioIds = sesion.EjercicioIds.Distinct().ToList();
@@ -90,9 +103,10 @@ namespace Backend.Application.Services
             var newSesion = new Sesion
             {
                 PacienteId = sesion.PacienteId,
-                PsicopedagogoId = sesion.PsicopedagogoId,
+                PsicopedagogoId = psicopedagogoId,
                 Fecha = DateTime.Now,
-                SesionEjercicios = ejercicioIds.Select(id => new SesionEjercicio { EjercicioId = id }).ToList()
+                // El Orden es la posición en la lista, empezando en 1: es el orden en que se van a hacer.
+                SesionEjercicios = ejercicioIds.Select((id, i) => new SesionEjercicio { EjercicioId = id, Orden = i + 1 }).ToList()
             };
 
             await sesionRepository.AddAsync(newSesion, ct);
@@ -102,8 +116,27 @@ namespace Backend.Application.Services
             return Result<SesionDto>.Success(SesionDto.FromEntity(newSesion));
         }
 
-        public async Task<Result<SesionDto>> UpdateAsync(int id, int psicopedagogoId, UpsertSesionRequest sesion, CancellationToken ct = default)
+        public async Task<Result<SesionDto>> UpdateAsync(int id, UpsertSesionRequest sesion, CancellationToken ct = default)
         {
+            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
+            {
+                return Result<SesionDto>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
+            }
+
+            // Solo se busca entre las sesiones del profesional logueado: la de otro se informa como inexistente.
+            var existente = await sesionRepository.GetForUpdateAsync(id, psicopedagogoId, ct);
+            if (existente is null)
+            {
+                return Result<SesionDto>.Failure($"La sesión con ID {id} no fue encontrada.", ErrorCodes.NotFound);
+            }
+
+            if (existente.Estado != EstadoSesion.Planificada || existente.SesionEjercicios.Any(se => se.Resultado is not null))
+            {
+                return Result<SesionDto>.Failure(
+                    "Solo se pueden modificar los ejercicios de una sesión planificada que todavía no tiene resultados.",
+                    ErrorCodes.ValidationError);
+            }
+
             var ejercicioIds = sesion.EjercicioIds.Distinct().ToList();
             var faltantes = await Faltantes(ejercicioIds, ct);
             if (faltantes.Count > 0)
@@ -112,15 +145,63 @@ namespace Backend.Application.Services
                     $"Ejercicio(s) no encontrado(s): {string.Join(", ", faltantes)}", ErrorCodes.NotFound);
             }
 
-            // Suma los ejercicios nuevos a los que la sesión ya tenía; no borra ni reemplaza nada.
-            var updated = await sesionRepository.AgregarEjerciciosAsync(id, psicopedagogoId, ejercicioIds, ct);
-            if (updated is null)
+            await sesionRepository.ReemplazarEjerciciosAsync(existente, ejercicioIds, ct);
+
+            logger.LogInformation("Sesion actualizada: {Id}", id);
+            return Result<SesionDto>.Success(SesionDto.FromEntity(existente));
+        }
+
+        public async Task<Result<SesionDto>> GetPlanificadaAsync(int pacienteId, CancellationToken ct = default)
+        {
+            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
+            {
+                return Result<SesionDto>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
+            }
+
+            var plan = await sesionRepository.GetPlanificadaAsync(pacienteId, psicopedagogoId, ct);
+
+            return plan is null
+                ? Result<SesionDto>.Failure($"El paciente {pacienteId} no tiene una sesión planificada.", ErrorCodes.NotFound)
+                : Result<SesionDto>.Success(SesionDto.FromEntity(plan));
+        }
+
+        public Task<Result<SesionDto>> IniciarAsync(int id, CancellationToken ct = default)
+            => CambiarEstadoAsync(id, EstadoSesion.Planificada, EstadoSesion.EnCurso, ct);
+
+        public Task<Result<SesionDto>> FinalizarAsync(int id, CancellationToken ct = default)
+            => CambiarEstadoAsync(id, EstadoSesion.EnCurso, EstadoSesion.Finalizada, ct);
+
+        private async Task<Result<SesionDto>> CambiarEstadoAsync(int id, EstadoSesion desde, EstadoSesion hasta, CancellationToken ct)
+        {
+            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
+            {
+                return Result<SesionDto>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
+            }
+
+            var sesion = await sesionRepository.GetForUpdateAsync(id, psicopedagogoId, ct);
+            if (sesion is null)
             {
                 return Result<SesionDto>.Failure($"La sesión con ID {id} no fue encontrada.", ErrorCodes.NotFound);
             }
 
-            logger.LogInformation("Sesion actualizada: {Id}", id);
-            return Result<SesionDto>.Success(SesionDto.FromEntity(updated));
+            if (sesion.Estado != desde)
+            {
+                return Result<SesionDto>.Failure(
+                    $"La sesión está {sesion.Estado}: solo se puede pasar a {hasta} desde {desde}.",
+                    ErrorCodes.ValidationError);
+            }
+
+            sesion.Estado = hasta;
+            if (hasta == EstadoSesion.EnCurso)
+            {
+                // La fecha de una sesión es cuándo se hizo, no cuándo se planificó.
+                sesion.Fecha = DateTime.Now;
+            }
+
+            await sesionRepository.SaveChangesAsync(ct);
+
+            logger.LogInformation("Sesion {Id}: {Desde} -> {Hasta}", id, desde, hasta);
+            return Result<SesionDto>.Success(SesionDto.FromEntity(sesion));
         }
 
         private async Task<List<int>> Faltantes(List<int> ejercicioIds, CancellationToken ct)

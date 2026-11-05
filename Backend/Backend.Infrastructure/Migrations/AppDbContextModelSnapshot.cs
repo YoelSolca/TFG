@@ -62,60 +62,70 @@ namespace Backend.Infrastructure.Migrations
                         new
                         {
                             Id = 1,
+                            Descripcion = "Hay que encontrar, entre varias imágenes, la que es idéntica al modelo. Trabaja la atención visual y la discriminación.",
                             Nombre = "Encontrá la imagen igual",
                             TipoEjercicioId = 1
                         },
                         new
                         {
                             Id = 2,
+                            Descripcion = "Se relaciona cada animal con su sombra. Trabaja la atención y la percepción visual.",
                             Nombre = "Sombras y animales",
                             TipoEjercicioId = 1
                         },
                         new
                         {
                             Id = 3,
+                            Descripcion = "Se ordenan los elementos según su color. Trabaja la atención sostenida y la clasificación.",
                             Nombre = "Clasificar colores",
                             TipoEjercicioId = 1
                         },
                         new
                         {
                             Id = 4,
+                            Descripcion = "Juego de parejas: se dan vuelta cartas para encontrar las iguales. Trabaja la memoria visual y de corto plazo.",
                             Nombre = "Memorama",
                             TipoEjercicioId = 2
                         },
                         new
                         {
                             Id = 5,
+                            Descripcion = "Se unen palabras con su imagen o significado. Trabaja el vocabulario y la lectura.",
                             Nombre = "Conectar palabras",
                             TipoEjercicioId = 3
                         },
                         new
                         {
                             Id = 6,
+                            Descripcion = "Se lee un texto breve y se responden preguntas sobre su contenido. Trabaja la comprensión lectora.",
                             Nombre = "Comprensión de texto",
                             TipoEjercicioId = 3
                         },
                         new
                         {
                             Id = 7,
+                            Descripcion = "Se escuchan palabras y se escriben correctamente. Trabaja la ortografía y la escritura.",
                             Nombre = "Dictado de palabras",
                             TipoEjercicioId = 4
                         },
                         new
                         {
                             Id = 8,
+                            Descripcion = "Operaciones básicas de suma y resta. Trabaja el cálculo mental.",
                             Nombre = "Sumas y restas",
                             TipoEjercicioId = 5
                         },
                         new
                         {
                             Id = 9,
+                            Descripcion = "Hay que completar la secuencia con el número que falta. Trabaja el razonamiento lógico y el cálculo.",
                             Nombre = "Series numéricas",
                             TipoEjercicioId = 5
                         },
                         new
                         {
                             Id = 10,
+                            Descripcion = "Ejercicios numéricos con tiempo limitado. Trabaja la agilidad en el cálculo.",
                             Nombre = "Desafío de números",
                             TipoEjercicioId = 5
                         });

@@ -17,6 +17,7 @@ namespace Backend.Application
             services.AddScoped<ISesionService, SesionService>();
             services.AddScoped<IResultadoService, ResultadoService>();
             services.AddScoped<IInformeService, InformeService>();
+            services.AddScoped<IMetricaService, MetricaService>();
             services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
 
             return services;
