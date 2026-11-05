@@ -17,5 +17,5 @@ public interface ITokenGenerator
 
 public interface IUsuarioActual
 {
-    int? PsicopedagogoId { get; }
+    int UserId { get; }
 }

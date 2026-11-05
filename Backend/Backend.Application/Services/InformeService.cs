@@ -15,11 +15,7 @@ namespace Backend.Application.Services
             var page = Math.Max(criteria.Page, 1);
             var pageSize = Math.Clamp(criteria.PageSize, 1, MaxPageSize);
 
-            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
-            {
-                return Result<PagedResponse<InformeListItemDto>>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
-            }
-
+            var psicopedagogoId = usuarioActual.UserId;
             var (items, total) = await repository.GetAllAsync(psicopedagogoId, criteria.NombreApellido, fecha, (page - 1) * pageSize, pageSize, ct);
 
             return Result<PagedResponse<InformeListItemDto>>.Success(
@@ -28,11 +24,7 @@ namespace Backend.Application.Services
 
         public async Task<Result<InformeDetalleDto>> GetByIdAsync(int id, CancellationToken ct = default)
         {
-            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
-            {
-                return Result<InformeDetalleDto>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
-            }
-
+            var psicopedagogoId = usuarioActual.UserId;
             // Un informe de otro profesional se informa como inexistente, para no revelar que existe.
             var informe = await repository.GetByIdAsync(id, psicopedagogoId, ct);
             return informe is null

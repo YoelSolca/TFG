@@ -12,3 +12,6 @@
 /Backend.Api/Backend.Application/bin/Debug/net9.0
 /Backend.Api/Backend.Domain/bin/Debug/net9.0
 /Backend.Api/Backend.Infrastructure/bin/Debug/net9.0
+
+# Configuracion local con credenciales (SMTP, etc.): no se sube al repositorio
+/Backend.Api/appsettings.Local.json

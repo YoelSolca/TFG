@@ -27,5 +27,9 @@
         public const string Duplicate = "DUPLICATE_IDCARD";
         public const string InvalidCredentials = "INVALID_CREDENTIALS";
         public const string EmailTaken = "EMAIL_TAKEN";
+        public const string InvalidToken = "INVALID_TOKEN";
+        public const string AccountPending = "ACCOUNT_PENDING";
+        public const string AccountRejected = "ACCOUNT_REJECTED";
+        public const string AccountSuspended = "ACCOUNT_SUSPENDED";
     }
 }

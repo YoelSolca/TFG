@@ -30,11 +30,7 @@ namespace Backend.Application.Services
             var page = Math.Max(criteria.Page, 1);
             var pageSize = Math.Clamp(criteria.PageSize, 1, MaxPageSize);
 
-            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
-            {
-                return Result<PagedResponse<EjercicioRealizadoItemDto>>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
-            }
-
+            var psicopedagogoId = usuarioActual.UserId;
             var (items, total) = await ejercicioRepository.GetRealizadosAsync(psicopedagogoId, criteria.NombreApellido, criteria.TipoEjercicioId, fecha, (page - 1) * pageSize, pageSize, ct);
 
             return Result<PagedResponse<EjercicioRealizadoItemDto>>.Success(

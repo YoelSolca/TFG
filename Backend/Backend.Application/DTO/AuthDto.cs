@@ -28,8 +28,3 @@ public record ResetPassword(
 public record LoginResponse(string Token, DateTime ExpiresAt, int PsicopedagogoId, string PsicopedagogoName, EstadoCuenta Estado, [property: JsonConverter(typeof(JsonStringEnumConverter))] RolUsuario Rol);
 
 
-public record ForgotPasswordRequest(string Token, DateTime ExpiresAt);
-
-public record ResetPasswordRequest(
-    [Required] string Token,
-    [Required, RegularExpression(ReglasContrasenia.Patron, ErrorMessage = ReglasContrasenia.Mensaje)] string NuevaContrasenia);

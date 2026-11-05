@@ -20,11 +20,7 @@ namespace Backend.Application.Services
 
         public async Task<Result<PagedResponse<PacienteListItemDto>>> GetPacientesAsync(string? search, int? tipoDificultadId, int page, int pageSize, CancellationToken ct = default)
         {
-            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
-            {
-                return Result<PagedResponse<PacienteListItemDto>>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
-            }
-
+            var psicopedagogoId = usuarioActual.UserId;
             page = Math.Max(page, 1);
             pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
 
@@ -34,11 +30,7 @@ namespace Backend.Application.Services
 
         public async Task<Result<PagedResponse<PacienteHistorialItemDto>>> GetHistorialAsync(int pacienteId, int? tipoEjercicioId, DateTime? fecha, int page, int pageSize, CancellationToken ct = default)
         {
-            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
-            {
-                return Result<PagedResponse<PacienteHistorialItemDto>>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
-            }
-
+            var psicopedagogoId = usuarioActual.UserId;
             page = Math.Max(page, 1);
             pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
 
@@ -48,11 +40,7 @@ namespace Backend.Application.Services
 
         public async Task<Result<IReadOnlyList<SesionSeguimientoDto>>> GetSeguimientoAsync(int pacienteId, DateTime? desde, DateTime? hasta, CancellationToken ct = default)
         {
-            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
-            {
-                return Result<IReadOnlyList<SesionSeguimientoDto>>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
-            }
-
+            var psicopedagogoId = usuarioActual.UserId;
             if (desde is DateTime d && hasta is DateTime h && d.Date > h.Date)
             {
                 return Result<IReadOnlyList<SesionSeguimientoDto>>.Failure("La fecha de inicio no puede ser posterior a la de fin.", ErrorCodes.ValidationError);
@@ -64,11 +52,7 @@ namespace Backend.Application.Services
 
         public async Task<Result<PagedResponse<PacienteInformeItemDto>>> GetInformesAsync(int pacienteId, DateTime? fecha, int page, int pageSize, CancellationToken ct = default)
         {
-            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
-            {
-                return Result<PagedResponse<PacienteInformeItemDto>>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
-            }
-
+            var psicopedagogoId = usuarioActual.UserId;
             page = Math.Max(page, 1);
             pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
 
@@ -78,11 +62,7 @@ namespace Backend.Application.Services
 
         public async Task<Result<PacienteDetalleDto>> GetDetalleAsync(int pacienteId, CancellationToken ct = default)
         {
-            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
-            {
-                return Result<PacienteDetalleDto>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
-            }
-
+            var psicopedagogoId = usuarioActual.UserId;
             var detalle = await queries.GetDetalleAsync(pacienteId, psicopedagogoId, ct);
 
             return detalle is null
@@ -177,12 +157,7 @@ namespace Backend.Application.Services
         public async Task<Result<IntervencionDto>> UpdateIntervencionAsync(int pacienteId, UpsertIntervencionRequest request, CancellationToken ct = default)
         {
 
-            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
-            {
-                return Result<IntervencionDto>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
-            }
-
-
+            var psicopedagogoId = usuarioActual.UserId;
             if (!await repository.UpdateIntervencionAsync(pacienteId, psicopedagogoId, request.Objetivo, request.Observaciones, ct))
             {
                 return Result<IntervencionDto>.Failure($"El psicopedagogo {psicopedagogoId} no atiende ni atendió al paciente {pacienteId}.", ErrorCodes.NotFound);
@@ -206,7 +181,7 @@ namespace Backend.Application.Services
                 return Result<PacienteDto>.Failure($"El documento {request.Documento} ya pertenece a otra persona.", ErrorCodes.Duplicate);
             }
 
-            var atencion = paciente.PsicopedagogoPacientes.FirstOrDefault(p => p.PsicopedagogoId == usuarioActual.PsicopedagogoId);
+            var atencion = paciente.PsicopedagogoPacientes.FirstOrDefault(p => p.PsicopedagogoId == usuarioActual.UserId);
 
             if (atencion is null)
                 return Result<PacienteDto>.Failure("El psicopedagogo no atiende a este paciente", ErrorCodes.NotFound);

@@ -23,11 +23,7 @@ namespace Backend.Application.Services
             var page = Math.Max(criteria.Page, 1);
             var pageSize = Math.Clamp(criteria.PageSize, 1, MaxPageSize);
 
-            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
-            {
-                return Result<PagedResponse<SesionListItemDto>>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
-            }
-
+            var psicopedagogoId = usuarioActual.UserId;
             var (items, total) = await sesionRepository.GetAllAsync(psicopedagogoId, criteria.NombreApellido, criteria.Estado, fecha, (page - 1) * pageSize, pageSize, ct);
 
             return Result<PagedResponse<SesionListItemDto>>.Success(new PagedResponse<SesionListItemDto>(items.Select(SesionListItemDto.FromEntity).ToList(), total, page, pageSize));
@@ -35,11 +31,7 @@ namespace Backend.Application.Services
 
         public async Task<Result<SesionListItemDto>> GetByIdAsync(int id, CancellationToken ct = default)
         {
-            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
-            {
-                return Result<SesionListItemDto>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
-            }
-
+            var psicopedagogoId = usuarioActual.UserId;
             var sesion = await sesionRepository.GetByIdAsync(id, psicopedagogoId, ct);
 
             return sesion is null
@@ -52,11 +44,7 @@ namespace Backend.Application.Services
             var page = Math.Max(criteria.Page, 1);
             var pageSize = Math.Clamp(criteria.PageSize, 1, MaxPageSize);
 
-            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
-            {
-                return Result<PagedResponse<SesionEjercicioItemDto>>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
-            }
-
+            var psicopedagogoId = usuarioActual.UserId;
             if (await sesionRepository.GetByIdAsync(id, psicopedagogoId, ct) is null)
             {
                 return Result<PagedResponse<SesionEjercicioItemDto>>.Failure($"La sesión con ID {id} no fue encontrada.", ErrorCodes.NotFound);
@@ -70,11 +58,7 @@ namespace Backend.Application.Services
 
         public async Task<Result<SesionDto>> AddAsync(CreateSesionRequest sesion, CancellationToken ct = default)
         {
-            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
-            {
-                return Result<SesionDto>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
-            }
-
+            var psicopedagogoId = usuarioActual.UserId;
             var atencion = await pacienteRepository.GetAtencionAsync(sesion.PacienteId, psicopedagogoId, ct);
 
             if (atencion is null || atencion.FechaFin is not null)
@@ -118,11 +102,7 @@ namespace Backend.Application.Services
 
         public async Task<Result<SesionDto>> UpdateAsync(int id, UpsertSesionRequest sesion, CancellationToken ct = default)
         {
-            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
-            {
-                return Result<SesionDto>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
-            }
-
+            var psicopedagogoId = usuarioActual.UserId;
             // Solo se busca entre las sesiones del profesional logueado: la de otro se informa como inexistente.
             var existente = await sesionRepository.GetForUpdateAsync(id, psicopedagogoId, ct);
             if (existente is null)
@@ -153,11 +133,7 @@ namespace Backend.Application.Services
 
         public async Task<Result<SesionDto>> GetPlanificadaAsync(int pacienteId, CancellationToken ct = default)
         {
-            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
-            {
-                return Result<SesionDto>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
-            }
-
+            var psicopedagogoId = usuarioActual.UserId;
             var plan = await sesionRepository.GetPlanificadaAsync(pacienteId, psicopedagogoId, ct);
 
             return plan is null
@@ -173,11 +149,7 @@ namespace Backend.Application.Services
 
         private async Task<Result<SesionDto>> CambiarEstadoAsync(int id, EstadoSesion desde, EstadoSesion hasta, CancellationToken ct)
         {
-            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
-            {
-                return Result<SesionDto>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
-            }
-
+            var psicopedagogoId = usuarioActual.UserId;
             var sesion = await sesionRepository.GetForUpdateAsync(id, psicopedagogoId, ct);
             if (sesion is null)
             {

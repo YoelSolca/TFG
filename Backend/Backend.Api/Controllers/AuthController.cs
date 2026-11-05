@@ -1,4 +1,5 @@
-﻿using Backend.Application.DTO;
+﻿using Backend.Application.Common;
+using Backend.Application.DTO;
 using Backend.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,21 +15,23 @@ namespace Backend.Api.Controllers
         public async Task<IActionResult> Login(LoginRequest request)
         {
             var result = await authService.LoginAsync(request);
+            if (result.IsSuccess) return Ok(result.Value);
 
-            return result.IsSuccess
-                ? Ok(result.Value)
-                : Problem(detail: result.Error, statusCode: StatusCodes.Status401Unauthorized, title: result.ErrorCode);
+            // La contraseña era correcta pero la cuenta no está habilitada: no es un problema de credenciales (401), sino un 403.
+            var cuentaNoHabilitada = result.ErrorCode is ErrorCodes.AccountPending or ErrorCodes.AccountRejected or ErrorCodes.AccountSuspended;
+            return Problem(
+                detail: result.Error,
+                statusCode: cuentaNoHabilitada ? StatusCodes.Status403Forbidden : StatusCodes.Status401Unauthorized,
+                title: result.ErrorCode);
         }
 
 
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] string correoElectronico)
         {
-            var result = await authService.ForgotPasswordAsync(correoElectronico);
+            await authService.ForgotPasswordAsync(correoElectronico);
 
-            return result.IsSuccess
-                ? Ok(result.Value)
-                : Problem(detail: result.Error, statusCode: StatusCodes.Status401Unauthorized, title: result.ErrorCode);
+            return Ok(new { mensaje = "Si el correo está registrado, te enviamos un enlace para restablecer la contraseña." });
         }
 
         [HttpPost("reset-password")]
@@ -36,8 +39,8 @@ namespace Backend.Api.Controllers
         {
             var result = await authService.ResetPasswordAsync(resetPassword.Token, resetPassword.NuevaContrasenia);
             return result.IsSuccess
-                ? Ok(result.Value)
-                : Problem(detail: result.Error, statusCode: StatusCodes.Status401Unauthorized, title: result.ErrorCode);
+                ? Ok()
+                : Problem(detail: result.Error, statusCode: StatusCodes.Status400BadRequest, title: result.ErrorCode);
         }
     }
 }

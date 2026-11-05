@@ -14,11 +14,7 @@ namespace Backend.Application.Services
     {
         public async Task<Result<ResultadoDetalleDto>> GetAsync(int sesionId, int ejercicioId, CancellationToken ct = default)
         {
-            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
-            {
-                return Result<ResultadoDetalleDto>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
-            }
-
+            var psicopedagogoId = usuarioActual.UserId;
             var detalle = await repository.GetDetalleAsync(sesionId, ejercicioId, psicopedagogoId, ct);
 
             return detalle is null
@@ -28,11 +24,7 @@ namespace Backend.Application.Services
 
         public async Task<Result<ResultadoDto>> UpsertAsync(int sesionId, int ejercicioId, UpsertResultadoRequest request, CancellationToken ct = default)
         {
-            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
-            {
-                return Result<ResultadoDto>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
-            }
-
+            var psicopedagogoId = usuarioActual.UserId;
             if (!await repository.SesionEjercicioPerteneceAsync(sesionId, ejercicioId, psicopedagogoId, ct))
             {
                 return Result<ResultadoDto>.Failure(

@@ -1,4 +1,5 @@
 ﻿using Backend.Domain.Entities;
+using Backend.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -9,9 +10,19 @@ using System.Threading.Tasks;
 
 namespace Backend.Application.DTO;
 
-public record PsicopedagogoDto(int PersonaId, string CorreoElectronico, string? Avatar, string Matricula, string Nombre, string Apellido, DateTime FechaSolicitud, [property: JsonConverter(typeof(JsonStringEnumConverter))] EstadoCuenta Estado)
+// Además de los datos para verificar la matrícula (documento, teléfono, nacimiento), trae lo que el administrador mira
+// antes de decidir: cuándo se aprobó, cuántos pacientes atiende, su última sesión y el motivo si está rechazada o suspendida.
+public record PsicopedagogoDto(
+    int PersonaId, string CorreoElectronico, string? Avatar, string Matricula, string Nombre, string Apellido,
+    DateTime FechaSolicitud, [property: JsonConverter(typeof(JsonStringEnumConverter))] EstadoCuenta Estado,
+    string Documento, string Telefono, string? Genero, DateOnly? FechaNacimiento,
+    DateTime? FechaAprobacion, int PacientesActivos, DateTime? UltimaActividad, string? Motivo)
 {
-    public static PsicopedagogoDto FromEntity(Psicopedagogo p) => new(p.PersonaId, p.Persona.Usuario.CorreoElectronico, p.Avatar, p.Matricula, p.Persona.Nombre, p.Persona.Apellido, p.Persona.Usuario.FechaSolicitud, p.Persona.Usuario.Estado);
+    public static PsicopedagogoDto FromEntity(Psicopedagogo p, ActividadPsicopedagogo? actividad = null) => new(
+        p.PersonaId, p.Persona.Usuario.CorreoElectronico, p.Avatar, p.Matricula, p.Persona.Nombre, p.Persona.Apellido,
+        p.Persona.Usuario.FechaSolicitud, p.Persona.Usuario.Estado,
+        p.Persona.Documento, p.Telefono, p.Persona.Genero, p.Persona.FechaNacimiento,
+        actividad?.FechaAprobacion, actividad?.PacientesActivos ?? 0, actividad?.UltimaActividad, actividad?.Motivo);
 }
 
 public record CreatePsicopedagogoRequest(

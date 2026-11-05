@@ -27,26 +27,50 @@ namespace Backend.Application.Services
                 pageSize,
                 ct);
 
-            return new PagedResponse<PsicopedagogoDto>(items.Select(PsicopedagogoDto.FromEntity).ToList(), total, page, pageSize);
+            var actividad = await repository.GetActividadAsync(items.Select(p => p.PersonaId).ToList(), ct);
+            var dtos = items.Select(p => PsicopedagogoDto.FromEntity(p, actividad.GetValueOrDefault(p.PersonaId))).ToList();
+
+            return new PagedResponse<PsicopedagogoDto>(dtos, total, page, pageSize);
         }
 
 
         public async Task<Result<PsicopedagogoDto>> CreatepsicopedagogoAsync(CreatePsicopedagogoRequest request, CancellationToken ct = default)
         {
+            var correo = request.CorreoElectronico.Trim().ToLowerInvariant();
+            var documento = request.Documento.Trim();
+            var matricula = request.Matricula.Trim();
+
+            // El correo, el documento y la matrícula son únicos en la base: se avisa con un mensaje claro (409)
+            // en vez de dejar que la base rechace el alta con un error interno (500).
+            if (await repository.EmailTakenByOtherAsync(0, correo, ct))
+            {
+                return Result<PsicopedagogoDto>.Failure("Ya existe una cuenta con ese correo electrónico.", ErrorCodes.EmailTaken);
+            }
+
+            if (await repository.DocumentoTakenByOtherAsync(0, documento, ct))
+            {
+                return Result<PsicopedagogoDto>.Failure("Ya existe una persona registrada con ese documento.", ErrorCodes.Duplicate);
+            }
+
+            if (await repository.MatriculaTakenAsync(matricula, ct))
+            {
+                return Result<PsicopedagogoDto>.Failure("Ya existe un profesional registrado con esa matrícula.", ErrorCodes.Duplicate);
+            }
+
             var psicopedagogo = new Psicopedagogo
             {
                 Telefono = request.Telefono,
-                Matricula = request.Matricula,
+                Matricula = matricula,
                 Persona = new Persona
                 {
                     Nombre = request.Nombre,
                     Apellido = request.Apellido,
-                    Documento = request.Documento,
+                    Documento = documento,
                     Genero = request.Genero,
                     FechaNacimiento = request.FechaNacimiento,
                     Usuario = new Usuario
                     {
-                        CorreoElectronico = request.CorreoElectronico,
+                        CorreoElectronico = correo,
                         Contrasenia = contraseniaHasher.Hash(request.Contrasenia),
                         FechaAlta = DateTime.Now,
                         AceptoTerminos = request.AceptoTerminos,
@@ -67,20 +91,19 @@ namespace Backend.Application.Services
             var psicopedagogo = await repository.GetByPsicopedagogoIdAsync(psicopedagogoId, ct);
              
            
-            return psicopedagogo is null
-                ? Result<PsicopedagogoDto>.Failure($"Psicopedagogo con el id {psicopedagogoId} no fue encontrado.")
-                : Result<PsicopedagogoDto>.Success(PsicopedagogoDto.FromEntity(psicopedagogo));
+            if (psicopedagogo is null)
+            {
+                return Result<PsicopedagogoDto>.Failure($"Psicopedagogo con el id {psicopedagogoId} no fue encontrado.", ErrorCodes.NotFound);
+            }
+
+            var actividad = await repository.GetActividadAsync([psicopedagogoId], ct);
+            return Result<PsicopedagogoDto>.Success(PsicopedagogoDto.FromEntity(psicopedagogo, actividad.GetValueOrDefault(psicopedagogoId)));
         }
 
 
         public async Task<Result<PerfilDto>> GetPerfilAsync(CancellationToken ct = default)
         {
-            if (usuarioActual.PsicopedagogoId is not int id)
-            {
-                return Result<PerfilDto>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
-            }
-
-            var psicopedagogo = await repository.GetByPsicopedagogoIdAsync(id, ct);
+            var psicopedagogo = await repository.GetByPsicopedagogoIdAsync(usuarioActual.UserId, ct);
 
             return psicopedagogo is null
                 ? Result<PerfilDto>.Failure("No se encontró tu perfil.", ErrorCodes.NotFound)
@@ -89,12 +112,7 @@ namespace Backend.Application.Services
 
         public async Task<Result<PerfilDto>> UpdatePerfilAsync(UpdatePerfilRequest request, CancellationToken ct = default)
         {
-            if (usuarioActual.PsicopedagogoId is not int id)
-            {
-                return Result<PerfilDto>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
-            }
-
-            var psicopedagogo = await repository.GetForUpdateAsync(id, ct);
+            var psicopedagogo = await repository.GetForUpdateAsync(usuarioActual.UserId, ct);
             if (psicopedagogo is null)
             {
                 return Result<PerfilDto>.Failure("No se encontró tu perfil.", ErrorCodes.NotFound);
@@ -125,13 +143,13 @@ namespace Backend.Application.Services
                     return Result<PerfilDto>.Failure("Para cambiar el correo ingresá tu contraseña actual.", ErrorCodes.InvalidCredentials);
                 }
 
-                if (await repository.EmailTakenByOtherAsync(id, correo, ct))
+                if (await repository.EmailTakenByOtherAsync(usuarioActual.UserId, correo, ct))
                 {
                     return Result<PerfilDto>.Failure("Ese correo electrónico ya está en uso.", ErrorCodes.EmailTaken);
                 }
             }
 
-            if (documento != persona.Documento && await repository.DocumentoTakenByOtherAsync(id, documento, ct))
+            if (documento != persona.Documento && await repository.DocumentoTakenByOtherAsync(usuarioActual.UserId, documento, ct))
             {
                 return Result<PerfilDto>.Failure("Ya existe una persona registrada con ese documento.", ErrorCodes.Duplicate);
             }
@@ -146,18 +164,13 @@ namespace Backend.Application.Services
 
             await repository.SaveChangesAsync(ct);
 
-            logger.LogInformation("Perfil del psicopedagogo {PsicopedagogoId} actualizado.", id);
+            logger.LogInformation("Perfil del psicopedagogo {PsicopedagogoId} actualizado.", usuarioActual.UserId);
             return Result<PerfilDto>.Success(PerfilDto.FromEntity(psicopedagogo));
         }
 
         public async Task<Result<bool>> ChangePasswordAsync(ChangePasswordRequest request, CancellationToken ct = default)
         {
-            if (usuarioActual.PsicopedagogoId is not int id)
-            {
-                return Result<bool>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
-            }
-
-            var psicopedagogo = await repository.GetForUpdateAsync(id, ct);
+            var psicopedagogo = await repository.GetForUpdateAsync(usuarioActual.UserId, ct);
             if (psicopedagogo is null)
             {
                 return Result<bool>.Failure("No se encontró tu perfil.", ErrorCodes.NotFound);
@@ -182,16 +195,12 @@ namespace Backend.Application.Services
 
             await repository.SaveChangesAsync(ct);
 
-            logger.LogInformation("El psicopedagogo {PsicopedagogoId} cambió su contraseña.", id);
+            logger.LogInformation("El psicopedagogo {PsicopedagogoId} cambió su contraseña.", usuarioActual.UserId);
             return Result<bool>.Success(true);
         }
 
         public async Task<Result<PsicopedagogoDto>> UpdateStateAsync(int psicopedagogoId, UpdateStateRequest request, CancellationToken ct = default)
         {
-            if (usuarioActual.PsicopedagogoId is not int adminId)
-            {
-                return Result<PsicopedagogoDto>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
-            }
 
             var psicopedagogo = await repository.GetForUpdateAsync(psicopedagogoId, ct);
 
@@ -203,7 +212,7 @@ namespace Backend.Application.Services
             var usuario = psicopedagogo.Persona.Usuario;
             usuario.Historial.Add(new HistorialEstadoCuenta
             {
-                AdministradorId = adminId,
+                AdministradorId = usuarioActual.UserId,
                 EstadoAnterior = usuario.Estado,
                 EstadoNuevo = request.Estado,
                 Motivo = request.Motivo,
@@ -214,7 +223,8 @@ namespace Backend.Application.Services
             await repository.SaveChangesAsync(ct);
 
             logger.LogInformation("Psicopedagogo con id {PsicopedagogoId} pasó a estado {Estado}.", psicopedagogoId, request.Estado);
-            return Result<PsicopedagogoDto>.Success(PsicopedagogoDto.FromEntity(psicopedagogo));
+            var actividad = await repository.GetActividadAsync([psicopedagogoId], ct);
+            return Result<PsicopedagogoDto>.Success(PsicopedagogoDto.FromEntity(psicopedagogo, actividad.GetValueOrDefault(psicopedagogoId)));
         }
     }
 }
