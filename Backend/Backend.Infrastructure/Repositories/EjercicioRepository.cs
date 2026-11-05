@@ -32,6 +32,9 @@ namespace Backend.Infrastructure.Repositories
             return (items, total);
         }
 
+        public async Task<IReadOnlyList<TipoEjercicio>> GetTiposEjercicioAsync(CancellationToken ct = default)
+            => await context.TipoEjercicio.AsNoTracking().OrderBy(t => t.Nombre).ToListAsync(ct);
+
         public async Task<IReadOnlyList<int>> GetExistingIdsAsync(IEnumerable<int> ids, CancellationToken ct = default)
             => await context.Ejercicio.Where(e => ids.Contains(e.Id)).Select(e => e.Id).ToListAsync(ct);
 

@@ -7,5 +7,6 @@ namespace Backend.Application.Interfaces
     {
         Task<PagedResponse<EjercicioDto>> GetAllEjercicioAsync(EjercicioSearchCriteria criteria, CancellationToken ct = default);
         Task<Result<PagedResponse<EjercicioRealizadoItemDto>>> GetRealizadosAsync(EjercicioRealizadoSearchCriteria criteria, DateTime? fecha, CancellationToken ct = default);
+        Task<IReadOnlyList<TipoEjercicioDto>> GetTiposEjercicioAsync(CancellationToken ct = default);
     }
 }

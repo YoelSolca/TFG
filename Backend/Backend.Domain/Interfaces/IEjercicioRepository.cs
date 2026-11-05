@@ -10,6 +10,7 @@ namespace Backend.Domain.Interfaces
         Task<(IReadOnlyList<Ejercicio>  Items, int TotalCount)> GetAllEjercicioAsync(
             EjercicioSearchFilter filter,
             int skip, int take, CancellationToken ct = default);
+        Task<IReadOnlyList<TipoEjercicio>> GetTiposEjercicioAsync(CancellationToken ct = default);
         Task<IReadOnlyList<int>> GetExistingIdsAsync(IEnumerable<int> ids, CancellationToken ct = default);
         Task<(IReadOnlyList<SesionEjercicio> Items, int TotalCount)> GetRealizadosAsync(
             int psicopedagogoId, string? nombreApellido, int? tipoEjercicioId, DateTime? fecha,

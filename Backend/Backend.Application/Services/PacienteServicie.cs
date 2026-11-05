@@ -9,7 +9,7 @@ namespace Backend.Application.Services
 {
     public class PacienteService(
         IPacienteRepository repository,
-        IPacienteQueries queries,
+        IInformeRepository informeRepository,
         IPersonaRepository personaRepository,
         IPsicopedagogoRepository psicopedagogoRepository,
         IUsuarioActual usuarioActual,
@@ -20,103 +20,123 @@ namespace Backend.Application.Services
 
         public async Task<Result<PagedResponse<PacienteListItemDto>>> GetPacientesAsync(string? search, int? tipoDificultadId, int page, int pageSize, CancellationToken ct = default)
         {
-            var psicopedagogoId = usuarioActual.UserId;
             page = Math.Max(page, 1);
             pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
 
+            var (items, total) = await repository.GetPacientesAsync(usuarioActual.UserId, search, tipoDificultadId, (page - 1) * pageSize, pageSize, ct);
+
             return Result<PagedResponse<PacienteListItemDto>>.Success(
-                await queries.GetPacientesAsync(psicopedagogoId, search, tipoDificultadId, page, pageSize, ct));
+                new PagedResponse<PacienteListItemDto>(items.Select(p => PacienteListItemDto.FromEntity(p, usuarioActual.UserId)).ToList(), total, page, pageSize));
         }
+
+        public async Task<IReadOnlyList<TipoDificultadDto>> GetTiposDificultadAsync(CancellationToken ct = default)
+            => (await repository.GetTiposDificultadAsync(ct)).Select(TipoDificultadDto.FromEntity).ToList();
 
         public async Task<Result<PagedResponse<PacienteHistorialItemDto>>> GetHistorialAsync(int pacienteId, int? tipoEjercicioId, DateTime? fecha, int page, int pageSize, CancellationToken ct = default)
         {
-            var psicopedagogoId = usuarioActual.UserId;
             page = Math.Max(page, 1);
             pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
 
+            var (items, total) = await repository.GetHistorialAsync(pacienteId, usuarioActual.UserId, tipoEjercicioId, fecha, (page - 1) * pageSize, pageSize, ct);
+
             return Result<PagedResponse<PacienteHistorialItemDto>>.Success(
-                await queries.GetHistorialAsync(pacienteId, psicopedagogoId, tipoEjercicioId, fecha, page, pageSize, ct));
+                new PagedResponse<PacienteHistorialItemDto>(items.Select(PacienteHistorialItemDto.FromEntity).ToList(), total, page, pageSize));
         }
 
-        public async Task<Result<IReadOnlyList<SesionSeguimientoDto>>> GetSeguimientoAsync(int pacienteId, DateTime? desde, DateTime? hasta, CancellationToken ct = default)
+        public async Task<Result<IReadOnlyList<SesionEvolucionDto>>> GetEvolucionAsync(int pacienteId, DateTime? desde, DateTime? hasta, CancellationToken ct = default)
         {
-            var psicopedagogoId = usuarioActual.UserId;
             if (desde is DateTime d && hasta is DateTime h && d.Date > h.Date)
             {
-                return Result<IReadOnlyList<SesionSeguimientoDto>>.Failure("La fecha de inicio no puede ser posterior a la de fin.", ErrorCodes.ValidationError);
+                return Result<IReadOnlyList<SesionEvolucionDto>>.Failure("La fecha de inicio no puede ser posterior a la de fin.", ErrorCodes.ValidationError);
             }
 
-            return Result<IReadOnlyList<SesionSeguimientoDto>>.Success(
-                await queries.GetSeguimientoAsync(pacienteId, psicopedagogoId, desde, hasta, ct));
+            // Sin paginar: el gráfico y el informe necesitan todas las sesiones del período.
+            var ejercicios = await repository.GetEvolucionAsync(pacienteId, usuarioActual.UserId, desde, hasta, ct);
+
+            return Result<IReadOnlyList<SesionEvolucionDto>>.Success(SesionEvolucionDto.Agrupar(ejercicios));
         }
 
         public async Task<Result<PagedResponse<PacienteInformeItemDto>>> GetInformesAsync(int pacienteId, DateTime? fecha, int page, int pageSize, CancellationToken ct = default)
         {
-            var psicopedagogoId = usuarioActual.UserId;
             page = Math.Max(page, 1);
             pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
 
+            var (items, total) = await informeRepository.GetByPacienteAsync(pacienteId, usuarioActual.UserId, fecha, (page - 1) * pageSize, pageSize, ct);
+
             return Result<PagedResponse<PacienteInformeItemDto>>.Success(
-                await queries.GetInformesAsync(pacienteId, psicopedagogoId, fecha, page, pageSize, ct));
+                new PagedResponse<PacienteInformeItemDto>(items.Select(PacienteInformeItemDto.FromEntity).ToList(), total, page, pageSize));
         }
 
         public async Task<Result<PacienteDetalleDto>> GetDetalleAsync(int pacienteId, CancellationToken ct = default)
         {
-            var psicopedagogoId = usuarioActual.UserId;
-            var detalle = await queries.GetDetalleAsync(pacienteId, psicopedagogoId, ct);
+            var atencion = await repository.GetDetalleAsync(pacienteId, usuarioActual.UserId, ct);
+            if (atencion is null)
+            {
+                return Result<PacienteDetalleDto>.Failure($"El paciente con ID {pacienteId} no fue encontrado.", ErrorCodes.NotFound);
+            }
 
-            return detalle is null
-                ? Result<PacienteDetalleDto>.Failure($"El paciente con ID {pacienteId} no fue encontrado.", ErrorCodes.NotFound)
-                : Result<PacienteDetalleDto>.Success(detalle);
+            var ultimaSesion = await repository.GetUltimaSesionAsync(pacienteId, usuarioActual.UserId, ct);
+            return Result<PacienteDetalleDto>.Success(PacienteDetalleDto.FromEntity(atencion, ultimaSesion));
         }
 
         public async Task<Result<RegistroPacienteResult>> CreatePacienteAsync(CreatePacienteRequest request, CancellationToken ct = default)
         {
-            if (await psicopedagogoRepository.GetByPsicopedagogoIdAsync(request.PsicopedagogoId, ct) is null)
+            if (await psicopedagogoRepository.GetByPsicopedagogoIdAsync(usuarioActual.UserId, ct) is null)
             {
-                return Result<RegistroPacienteResult>.Failure($"El psicopedagogo con ID {request.PsicopedagogoId} no fue encontrado.", ErrorCodes.NotFound);
+                return Result<RegistroPacienteResult>.Failure($"El psicopedagogo con ID {usuarioActual.UserId} no fue encontrado.", ErrorCodes.NotFound);
             }
 
-            var tiposDificultadIds = request.TiposDificultadIds?.Distinct().ToList() ?? [];
-            if (tiposDificultadIds.Count > 0 && !await repository.TiposDificultadExistenAsync(tiposDificultadIds, ct))
+            var documento = request.Documento.Trim();
+            if (documento.Length == 0 || string.IsNullOrWhiteSpace(request.Nombre) || string.IsNullOrWhiteSpace(request.Apellido) || string.IsNullOrWhiteSpace(request.Direccion))
+            {
+                return Result<RegistroPacienteResult>.Failure("Nombre, apellido, documento y dirección son obligatorios.", ErrorCodes.ValidationError);
+            }
+
+            if (request.FechaNacimiento == default || request.FechaNacimiento > DateOnly.FromDateTime(DateTime.Today))
+            {
+                return Result<RegistroPacienteResult>.Failure("La fecha de nacimiento es obligatoria y no puede ser futura.", ErrorCodes.ValidationError);
+            }
+
+            var tiposDificultadIds = request.TiposDificultadIds.Distinct().ToList();
+            if (!await repository.TiposDificultadExistenAsync(tiposDificultadIds, ct))
             {
                 return Result<RegistroPacienteResult>.Failure("Alguno de los tipos de dificultad indicados no existe.", ErrorCodes.ValidationError);
             }
 
             // El paciente es único en todo el sistema: si el documento ya existe no se duplica, solo se
             // vincula a este psicopedagogo. Los datos personales guardados no se sobrescriben.
-            var existente = await repository.GetByDocumentoAsync(request.Documento, ct);
+            var existente = await repository.GetByDocumentoAsync(documento, ct);
             if (existente is not null)
             {
-                var atencion = await repository.GetAtencionAsync(existente.PersonaId, request.PsicopedagogoId, ct);
+                var atencion = await repository.GetAtencionAsync(existente.PersonaId, usuarioActual.UserId, ct);
 
                 // El mismo psicopedagogo intenta cargar un paciente que ya atiende: es un intento de duplicado.
                 if (atencion is not null && atencion.FechaFin is null)
                 {
-                    return Result<RegistroPacienteResult>.Failure($"El paciente con documento {request.Documento} ya está registrado en tu lista de pacientes.", ErrorCodes.Duplicate);
+                    return Result<RegistroPacienteResult>.Failure($"El paciente con documento {documento} ya está registrado en tu lista de pacientes.", ErrorCodes.Duplicate);
                 }
 
-                await IniciarOReactivarAtencionAsync(existente.PersonaId, request.PsicopedagogoId, atencion, request.Objetivo, request.Observaciones, tiposDificultadIds, ct);
+                await IniciarOReactivarAtencionAsync(existente.PersonaId, usuarioActual.UserId, atencion, request.Objetivo, request.Observaciones, tiposDificultadIds, ct);
 
-                logger.LogInformation("Paciente existente {Id} vinculado al psicopedagogo {PsicopedagogoId}", existente.PersonaId, request.PsicopedagogoId);
+                logger.LogInformation("Paciente existente {Id} vinculado al psicopedagogo {PsicopedagogoId}", existente.PersonaId, usuarioActual.UserId);
                 return Result<RegistroPacienteResult>.Success(new RegistroPacienteResult(PacienteDto.FromEntity(existente), false));
             }
 
             // El documento existe pero pertenece a alguien que no es paciente (ej. un psicopedagogo).
-            if (await personaRepository.IdCardExistAsync(request.Documento, ct: ct))
+            if (await personaRepository.IdCardExistAsync(documento, ct: ct))
             {
-                return Result<RegistroPacienteResult>.Failure($"El documento {request.Documento} pertenece a otra persona registrada que no es paciente.", ErrorCodes.Duplicate);
+                return Result<RegistroPacienteResult>.Failure($"El documento {documento} pertenece a otra persona registrada.", ErrorCodes.Duplicate);
             }
 
             var paciente = new Paciente
             {
-                Direccion = request.Direccion,
+                Direccion = request.Direccion.Trim(),
                 FechaAlta = DateTime.Now,
                 Persona = new Persona
                 {
-                    Nombre = request.Nombre,
-                    Apellido = request.Apellido,
-                    Documento = request.Documento,
+                    Nombre = request.Nombre.Trim(),
+                    Apellido = request.Apellido.Trim(),
+                    Documento = documento,
                     Genero = request.Genero,
                     FechaNacimiento = request.FechaNacimiento
                 },
@@ -125,7 +145,7 @@ namespace Backend.Application.Services
                 {
                     new()
                     {
-                        PsicopedagogoId = request.PsicopedagogoId,
+                        PsicopedagogoId = usuarioActual.UserId,
                         FechaInicio = DateTime.Now,
                         Intervencion = new Intervencion
                         {
@@ -156,14 +176,12 @@ namespace Backend.Application.Services
 
         public async Task<Result<IntervencionDto>> UpdateIntervencionAsync(int pacienteId, UpsertIntervencionRequest request, CancellationToken ct = default)
         {
-
-            var psicopedagogoId = usuarioActual.UserId;
-            if (!await repository.UpdateIntervencionAsync(pacienteId, psicopedagogoId, request.Objetivo, request.Observaciones, ct))
+            if (!await repository.UpdateIntervencionAsync(pacienteId, usuarioActual.UserId, request.Objetivo, request.Observaciones, ct))
             {
-                return Result<IntervencionDto>.Failure($"El psicopedagogo {psicopedagogoId} no atiende ni atendió al paciente {pacienteId}.", ErrorCodes.NotFound);
+                return Result<IntervencionDto>.Failure($"El psicopedagogo {usuarioActual.UserId} no atiende ni atendió al paciente {pacienteId}.", ErrorCodes.NotFound);
             }
 
-            logger.LogInformation("Intervención actualizada: paciente {PacienteId}, psicopedagogo {PsicopedagogoId}", pacienteId, psicopedagogoId);
+            logger.LogInformation("Intervención actualizada: paciente {PacienteId}, psicopedagogo {PsicopedagogoId}", pacienteId, usuarioActual.UserId);
             return Result<IntervencionDto>.Success(new IntervencionDto(request.Objetivo, request.Observaciones));
         }
 
@@ -178,7 +196,7 @@ namespace Backend.Application.Services
 
             if (await personaRepository.IdCardExistAsync(request.Documento, excludedId: pacienteId, ct: ct))
             {
-                return Result<PacienteDto>.Failure($"El documento {request.Documento} ya pertenece a otra persona.", ErrorCodes.Duplicate);
+                return Result<PacienteDto>.Failure($"El documento {request.Documento} pertenece a otra persona.", ErrorCodes.Duplicate);
             }
 
             var atencion = paciente.PsicopedagogoPacientes.FirstOrDefault(p => p.PsicopedagogoId == usuarioActual.UserId);

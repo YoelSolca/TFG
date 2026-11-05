@@ -11,8 +11,8 @@ namespace Backend.Infrastructure.Data.Configurations
             builder.ToTable("Intervencion");
 
             builder.HasKey(i => i.Id);
-            builder.Property(i => i.objetivo).HasMaxLength(50);
-            builder.Property(i => i.observaciones).HasMaxLength(100);
+            builder.Property(i => i.objetivo).HasMaxLength(500);
+            builder.Property(i => i.observaciones).HasMaxLength(1000);
         }
     }
 }

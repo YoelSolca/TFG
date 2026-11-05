@@ -9,6 +9,6 @@ public record IntervencionDto(string? Objetivo, string? Observaciones)
 }
 
 public record UpsertIntervencionRequest(
-    [StringLength(50)] string? Objetivo,
-    [StringLength(100)] string? Observaciones
+    [StringLength(500)] string? Objetivo,
+    [StringLength(1000)] string? Observaciones
 );

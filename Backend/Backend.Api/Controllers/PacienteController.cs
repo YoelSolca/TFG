@@ -38,13 +38,13 @@ namespace Backend.Api.Controllers
             return result.IsSuccess ? Ok(result.Value) : ToError(result.Error, result.ErrorCode);
         }
 
-        [HttpGet("{pacienteId:int}/seguimiento")]
-        [ProducesResponseType<IReadOnlyList<SesionSeguimientoDto>>(StatusCodes.Status200OK)]
+        [HttpGet("{pacienteId:int}/evolucion")]
+        [ProducesResponseType<IReadOnlyList<SesionEvolucionDto>>(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> GetSeguimiento(int pacienteId, DateTime? desde, DateTime? hasta, CancellationToken ct = default)
+        public async Task<IActionResult> GetEvolucion(int pacienteId, DateTime? desde, DateTime? hasta, CancellationToken ct = default)
         {
-            var result = await pacienteService.GetSeguimientoAsync(pacienteId, desde, hasta, ct);
+            var result = await pacienteService.GetEvolucionAsync(pacienteId, desde, hasta, ct);
             return result.IsSuccess ? Ok(result.Value) : ToError(result.Error, result.ErrorCode);
         }
 

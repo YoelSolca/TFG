@@ -3,7 +3,6 @@ using Backend.Application.Options;
 using Backend.Domain.Interfaces;
 using Backend.Infrastructure.Data;
 using Backend.Infrastructure.Email;
-using Backend.Infrastructure.Queries;
 using Backend.Infrastructure.Repositories;
 using Backend.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
@@ -26,8 +25,6 @@ namespace Backend.Infrastructure
             services.AddScoped<IPersonaRepository, PersonaRepository>();
             services.AddScoped<IPsicopedagogoRepository, PsicopedagogoRepository>();
             services.AddScoped<IPacienteRepository, PacienteRepository>();
-            services.AddScoped<IPacienteQueries, PacienteQueries>();
-            services.AddScoped<ITipoDificultadQueries, TipoDificultadQueries>();
             services.AddScoped<IUsuarioRepository, UsuarioRepository>();
             services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
             services.AddScoped<ITokenGenerator, JwtTokenGenerator>();
@@ -36,7 +33,6 @@ namespace Backend.Infrastructure
             services.AddScoped<IMetricaRepository, MetricaRepository>();
             services.AddScoped<IResultadoRepository, ResultadoRepository>();
             services.AddScoped<IInformeRepository, InformeRepository>();
-            services.AddScoped<ITipoEjercicioQueries, TipoEjercicioQueries>();
 
             services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
             services.AddScoped<IEmailSender, SmtpEmailSender>();
