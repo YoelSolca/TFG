@@ -1,4 +1,4 @@
-import { HistorialPacienteResponse, PacientesResponse } from "../Model/paciente.model";
+import { HistorialPacienteResponse, PacientesResponse, SesionSeguimiento } from "../Model/paciente.model";
 import { PacienteDetalle } from "../Model/PacienteDetalle.model";
 import { backendApi } from "./api/backendApi";
 
@@ -49,6 +49,22 @@ export const obtenerHistorialPaciente = async (id: string, tipoEjercicioId?: num
   }
 }
 
+// desde y hasta viajan como texto "YYYY-MM-DD" para que la zona horaria no corra el día.
+export const obtenerSeguimientoPaciente = async (id: string, desde?: string, hasta?: string): Promise<SesionSeguimiento[]> => {
+  try {
+    const response = await backendApi().get(`/api/pacientes/${id}/seguimiento`, {
+      params: {
+        desde: desde,
+        hasta: hasta,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error al obtener el seguimiento del paciente:", error);
+    throw error;
+  }
+};
+
 export const obtenerInformesPaciente = async (id: string, fecha?: Date, page?: number, pageSize?: number) => {
   try {
     const response = await backendApi().get(`/api/pacientes/${id}/informes`, {
@@ -67,7 +83,11 @@ export const obtenerInformesPaciente = async (id: string, fecha?: Date, page?: n
 
 export const guardarCambiosPaciente = async (id: string, paciente: PacienteDetalle) => {
   try {
-    const response = await backendApi().put(`/api/pacientes/${id}`, paciente);
+    // El servidor recibe solo los ids de las dificultades elegidas.
+    const response = await backendApi().put(`/api/pacientes/${id}`, {
+      ...paciente,
+      tiposDificultadIds: paciente.tiposDificultad.map((t) => t.id),
+    });
     return response.data;
   } catch (error) {
     console.error("Error al guardar cambios del paciente:", error);

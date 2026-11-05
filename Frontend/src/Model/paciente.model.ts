@@ -63,6 +63,22 @@ export interface HistorialPacienteItem {
   metricas:       Metrica[];
 }
 
+export interface EjercicioSeguimiento {
+  ejercicioId:     number;
+  ejercicio:       string;
+  tipoEjercicioId: number;
+  tipoEjercicio:   string;
+  aciertos:        number;
+  errores:         number;
+  observaciones:   string | null;
+}
+
+export interface SesionSeguimiento {
+  sesionId:   number;
+  fecha:      string; // llega como texto ISO, p. ej. "2026-10-13T10:30:00"
+  ejercicios: EjercicioSeguimiento[];
+}
+
 export interface Metrica {
   nombre: string;
   valor:  number;

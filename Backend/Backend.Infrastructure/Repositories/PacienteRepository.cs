@@ -14,7 +14,7 @@ namespace Backend.Infrastructure.Repositories
         => await context.TipoDificultad.CountAsync(t => ids.Contains(t.Id), ct) == ids.Count;
 
         public async Task<Paciente?> GetForUpdateAsync(int id, CancellationToken ct = default)
-        => await context.Paciente.Include(p => p.Persona).Include(p => p.PsicopedagogoPacientes).ThenInclude(p => p.Intervencion).FirstOrDefaultAsync(p => p.PersonaId == id, ct);
+        => await context.Paciente.Include(p => p.Persona).Include(p => p.PsicopedagogoPacientes).ThenInclude(p => p.Intervencion).ThenInclude(i => i.TiposDificultad).FirstOrDefaultAsync(p => p.PersonaId == id, ct);
 
         public async Task<Paciente> AddPacienteAsync(Paciente paciente, CancellationToken ct = default)
         {

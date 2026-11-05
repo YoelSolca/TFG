@@ -24,6 +24,7 @@ import InformesGeneral from "./pages/Informes";
 import InformeDetalle from "./pages/InformeDetalle";
 import Inicio from "./pages/Inicio";
 import Perfil from "./pages/Perfil";
+import Seguimiento from "./pages/paciente/Seguimiento";
 
 export const ROLES = { ADMIN: 'Administrador', PRO: 'Psicopedagogo' };
 
@@ -107,6 +108,7 @@ function App() {
             <Route path="informacion" element={<Informacion />} />
             <Route path="historial" element={<Historial />} />
             <Route path="informes" element={<Informes />} />
+            <Route path="seguimiento" element={<Seguimiento />} />
           </Route>
          <Route path="/sesiones/nueva/ejercicios/:patientId"element={<NuevaSesionEjercicios />}/>
           <Route path="/ejercicios" element={<EjerciciosRealizados />} />

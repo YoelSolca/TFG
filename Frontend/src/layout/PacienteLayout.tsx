@@ -15,6 +15,7 @@ import { formatearEdad } from "../utils/edad";
 const PATIENT_TABS = [
   { label: "Información", path: "informacion" },
   { label: "Historial", path: "historial" },
+  { label: "Seguimiento", path: "seguimiento" },
   { label: "Informes", path: "informes" },
 ];
 

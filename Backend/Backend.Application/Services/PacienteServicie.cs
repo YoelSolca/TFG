@@ -46,6 +46,22 @@ namespace Backend.Application.Services
                 await queries.GetHistorialAsync(pacienteId, psicopedagogoId, tipoEjercicioId, fecha, page, pageSize, ct));
         }
 
+        public async Task<Result<IReadOnlyList<SesionSeguimientoDto>>> GetSeguimientoAsync(int pacienteId, DateTime? desde, DateTime? hasta, CancellationToken ct = default)
+        {
+            if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
+            {
+                return Result<IReadOnlyList<SesionSeguimientoDto>>.Failure("No hay una sesión activa.", ErrorCodes.Unauthorized);
+            }
+
+            if (desde is DateTime d && hasta is DateTime h && d.Date > h.Date)
+            {
+                return Result<IReadOnlyList<SesionSeguimientoDto>>.Failure("La fecha de inicio no puede ser posterior a la de fin.", ErrorCodes.ValidationError);
+            }
+
+            return Result<IReadOnlyList<SesionSeguimientoDto>>.Success(
+                await queries.GetSeguimientoAsync(pacienteId, psicopedagogoId, desde, hasta, ct));
+        }
+
         public async Task<Result<PagedResponse<PacienteInformeItemDto>>> GetInformesAsync(int pacienteId, DateTime? fecha, int page, int pageSize, CancellationToken ct = default)
         {
             if (usuarioActual.PsicopedagogoId is not int psicopedagogoId)
@@ -195,6 +211,22 @@ namespace Backend.Application.Services
             if (atencion is null)
                 return Result<PacienteDto>.Failure("El psicopedagogo no atiende a este paciente", ErrorCodes.NotFound);
 
+            var tiposDificultadIds = request.TiposDificultadIds.Distinct().ToList();
+            if (!await repository.TiposDificultadExistenAsync(tiposDificultadIds, ct))
+            {
+                return Result<PacienteDto>.Failure("Algún tipo de dificultad no existe.", ErrorCodes.NotFound);
+            }
+
+            // Las dificultades quedan exactamente las pedidas: se sacan las que ya no están y se suman las nuevas.
+            var tiposActuales = atencion.Intervencion.TiposDificultad;
+            foreach (var quitado in tiposActuales.Where(t => !tiposDificultadIds.Contains(t.TipoDificultadId)).ToList())
+            {
+                tiposActuales.Remove(quitado);
+            }
+            foreach (var id in tiposDificultadIds.Where(id => tiposActuales.All(t => t.TipoDificultadId != id)))
+            {
+                tiposActuales.Add(new IntervencionTipoDificultad { TipoDificultadId = id });
+            }
 
             paciente.Direccion = request.Direccion;
             paciente.Persona.Nombre = request.Nombre;
