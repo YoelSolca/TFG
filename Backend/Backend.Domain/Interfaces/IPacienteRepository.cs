@@ -4,6 +4,19 @@ namespace Backend.Domain.Interfaces
 {
     public interface IPacienteRepository
     {
+        // Pacientes que atiende el profesional (con su búsqueda y filtro por dificultad), ya paginados.
+        Task<(IReadOnlyList<Paciente> Items, int TotalCount)> GetPacientesAsync(
+            int psicopedagogoId, string? search, int? tipoDificultadId, int skip, int take, CancellationToken ct = default);
+        // Ejercicios ya realizados por un paciente (los que tienen resultado), del más nuevo al más viejo.
+        Task<(IReadOnlyList<SesionEjercicio> Items, int TotalCount)> GetHistorialAsync(
+            int pacienteId, int psicopedagogoId, int? tipoEjercicioId, DateTime? fecha, int skip, int take, CancellationToken ct = default);
+        // Los mismos ejercicios realizados, sin paginar y de la sesión más vieja a la más nueva: la evolución necesita todo el período.
+        Task<IReadOnlyList<SesionEjercicio>> GetEvolucionAsync(
+            int pacienteId, int psicopedagogoId, DateTime? desde, DateTime? hasta, CancellationToken ct = default);
+        // La atención del profesional a ese paciente, con lo necesario para armar su ficha.
+        Task<PsicopedagogoPaciente?> GetDetalleAsync(int pacienteId, int psicopedagogoId, CancellationToken ct = default);
+        Task<Sesion?> GetUltimaSesionAsync(int pacienteId, int psicopedagogoId, CancellationToken ct = default);
+        Task<IReadOnlyList<TipoDificultad>> GetTiposDificultadAsync(CancellationToken ct = default);
         Task<Paciente> AddPacienteAsync(Paciente paciente, CancellationToken ct = default);
         Task<Paciente?> GetByDocumentoAsync(string documento, CancellationToken ct = default);
         Task<bool> TiposDificultadExistenAsync(IReadOnlyCollection<int> ids, CancellationToken ct = default);

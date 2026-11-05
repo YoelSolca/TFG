@@ -6,11 +6,11 @@ namespace Backend.Api.Controllers
 {
     [ApiController]
     [Route("api/tipos-dificultad")]
-    public class TipoDificultadController(ITipoDificultadQueries queries) : Controller
+    public class TipoDificultadController(IPacienteService pacienteService) : Controller
     {
         [HttpGet]
         [ProducesResponseType<IReadOnlyList<TipoDificultadDto>>(StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAll(CancellationToken ct)
-            => Ok(await queries.GetAllAsync(ct));
+            => Ok(await pacienteService.GetTiposDificultadAsync(ct));
     }
 }

@@ -53,8 +53,8 @@ public record InformeDetalleDto(
 
 public record InformeSearchCriteria(string? NombreApellido, int Page = 1, int PageSize = 5);
 
+// El psicopedagogo sale del token, no del body: nadie puede generar informes a nombre de otro profesional.
 public record CreateInformeRequest(
-    [Required] int PsicopedagogoId,
     [Required] DateTime PeriodoDesde,
     [Required] DateTime PeriodoHasta
 );

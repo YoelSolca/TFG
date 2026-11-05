@@ -47,6 +47,26 @@ namespace Backend.Infrastructure.Repositories
             return (items, total);
         }
 
+        public async Task<(IReadOnlyList<Informe> Items, int TotalCount)> GetByPacienteAsync(
+            int pacienteId, int psicopedagogoId, DateTime? fecha, int skip, int take, CancellationToken ct = default)
+        {
+            var query = context.Informe.AsNoTracking()
+                .Where(i => i.PsicopedagogoId == psicopedagogoId && i.PacienteId == pacienteId);
+
+            if (fecha is DateTime f)
+                query = query.Where(i => i.FechaGeneracion.Date == f.Date);
+
+            var total = await query.CountAsync(ct);
+
+            var items = await query
+                .OrderByDescending(i => i.FechaGeneracion)
+                .ThenByDescending(i => i.Id)
+                .Skip(skip).Take(take)
+                .ToListAsync(ct);
+
+            return (items, total);
+        }
+
         public Task<Informe?> GetByIdAsync(int id, int psicopedagogoId, CancellationToken ct = default)
             => context.Informe.AsNoTracking()
                 .Include(i => i.Paciente).ThenInclude(p => p.Persona)

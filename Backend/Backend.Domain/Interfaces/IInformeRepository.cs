@@ -8,6 +8,9 @@ namespace Backend.Domain.Interfaces
         Task<(IReadOnlyList<Informe> Items, int TotalCount)> GetAllAsync(
             int psicopedagogoId, string? nombreApellido, DateTime? fecha,
             int skip, int take, CancellationToken ct = default);
+        // Informes de un paciente (los de ese profesional), del más nuevo al más viejo, ya paginados.
+        Task<(IReadOnlyList<Informe> Items, int TotalCount)> GetByPacienteAsync(
+            int pacienteId, int psicopedagogoId, DateTime? fecha, int skip, int take, CancellationToken ct = default);
         Task<Informe?> GetByIdAsync(int id, int psicopedagogoId, CancellationToken ct = default);
         Task<Informe> AddAsync(Informe informe, CancellationToken ct = default);
     }
