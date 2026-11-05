@@ -1,6 +1,7 @@
 ﻿using Backend.Application.Interfaces;
 using Backend.Application.Options;
 using Backend.Domain.Interfaces;
+using Backend.Infrastructure.Ai;
 using Backend.Infrastructure.Data;
 using Backend.Infrastructure.Email;
 using Backend.Infrastructure.Repositories;
@@ -36,6 +37,9 @@ namespace Backend.Infrastructure
 
             services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
             services.AddScoped<IEmailSender, SmtpEmailSender>();
+
+            services.Configure<AnthropicOptions>(configuration.GetSection(AnthropicOptions.SectionName));
+            services.AddScoped<IInformeGenerador, ClaudeInformeGenerador>();
 
             return services;
         }
