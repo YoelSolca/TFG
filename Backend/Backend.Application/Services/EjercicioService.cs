@@ -25,5 +25,17 @@ namespace Backend.Application.Services
             return new PagedResponse<EjercicioDto>(items.Select(EjercicioDto.FromEntity).ToList(), total, page, pageSize);
         }
 
+        public async Task<Result<PagedResponse<EjercicioRealizadoItemDto>>> GetRealizadosAsync(EjercicioRealizadoSearchCriteria criteria, DateTime? fecha, CancellationToken ct = default)
+        {
+            var page = Math.Max(criteria.Page, 1);
+            var pageSize = Math.Clamp(criteria.PageSize, 1, MaxPageSize);
+
+            var psicopedagogoId = usuarioActual.UserId;
+            var (items, total) = await ejercicioRepository.GetRealizadosAsync(psicopedagogoId, criteria.NombreApellido, criteria.TipoEjercicioId, fecha, (page - 1) * pageSize, pageSize, ct);
+
+            return Result<PagedResponse<EjercicioRealizadoItemDto>>.Success(
+                new PagedResponse<EjercicioRealizadoItemDto>(items.Select(EjercicioRealizadoItemDto.FromEntity).ToList(), total, page, pageSize));
+        }
+
     }
 }

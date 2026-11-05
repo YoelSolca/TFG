@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Salida por defecto del script de imagenes de los juegos
+scripts/salida

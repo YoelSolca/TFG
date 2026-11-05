@@ -8,6 +8,7 @@ import {
 import {
   AppBar,
   Avatar,
+  Badge,
   Box,
   Button,
   Divider,
@@ -34,34 +35,58 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import brainIcon from "../assets/icons/logo.png";
+import HowToRegIcon from '@mui/icons-material/HowToReg';
+import VerifiedUserOutlinedIcon from '@mui/icons-material/VerifiedUserOutlined';
+import { ROLES, useAuth } from "../App";
+import { ListPsicopedagogos } from "../actions/psicopedagogo.action";
+export const DRAWER_WIDTH = 260;
 
-const NAV = [
+type NavItem = {
+  label: string;
+  to: string;
+  icon: typeof HomeIcon;
+  match: (p: string, from?: string) => boolean;
+  badge?: boolean;
+};
+
+const NAV: NavItem[] = [
   { label: "Inicio", to: "/", icon: HomeIcon, match: (p: string) => p === "/" },
   {
     label: "Pacientes",
     to: "/pacientes",
     icon: PeopleIcon,
-    match: (p: string) => p.startsWith("/pacientes"),
+    match: (p: string, from?: string) =>
+      p.startsWith("/pacientes") && !(from === "informes" && p.includes("/informes/")),
   },
   {
     label: "Sesiones",
     to: "/sesiones",
     icon: EventIcon,
-    match: (p: string) =>
-      p.startsWith("/sesiones") && !p.includes("/ejercicios/"),
+    // el detalle de un ejercicio cuenta como Sesiones salvo que se haya llegado desde Ejercicios realizados
+    match: (p: string, from?: string) =>
+      p.startsWith("/sesiones") && !(from === "ejercicios" && p.includes("/ejercicios/")),
   },
   {
     label: "Ejercicios realizados",
     to: "/ejercicios",
     icon: AssignmentIcon,
-    match: (p: string) => p.startsWith("/ejercicios"),
+    // también queda marcado en el detalle de un ejercicio al que se llegó desde esta lista
+    match: (p: string, from?: string) =>
+      p.startsWith("/ejercicios") || (from === "ejercicios" && p.includes("/ejercicios/")),
   },
   {
     label: "Informes",
     to: "/informes",
     icon: DescriptionIcon,
-    match: (p: string) => p.startsWith("/informes"),
+    // también queda marcado en el detalle de un informe al que se llegó desde esta lista
+    match: (p: string, from?: string) =>
+      p.startsWith("/informes") || (from === "informes" && p.includes("/informes/")),
   },
+];
+
+const ADMIN_NAV: NavItem[] = [
+  { label: 'Solicitudes', to: '/admin', icon: HowToRegIcon, match: (p:string) => p === '/admin', badge: true },
+  { label: 'Profesionales', to: '/admin/profesionales', icon: VerifiedUserOutlinedIcon, match: (p:string) => p.startsWith('/admin/profesionales') },
 ];
 
 function SideNav({
@@ -75,6 +100,18 @@ function SideNav({
 }) {
   const { pathname, state } = useLocation();
   const locked = Array.isArray(state?.queue);
+  const { user } = useAuth();
+  const isAdmin = user?.role === ROLES.ADMIN;
+  const nav = isAdmin ? ADMIN_NAV : NAV;
+  const [pending, setPending] = useState(0);
+
+  // Cantidad de solicitudes pendientes para el badge; se refresca al navegar.
+  useEffect(() => {
+    if (!isAdmin) return;
+    ListPsicopedagogos("", ["Pendiente"], 1, 1)
+      .then((data: { total: number }) => setPending(data.total))
+      .catch(() => setPending(0));
+  }, [isAdmin, pathname]);
 
   return (
     <Drawer
@@ -101,8 +138,8 @@ function SideNav({
       </Stack>
 
       <List disablePadding className="flex flex-col gap-1">
-        {NAV.map(({ label, to, icon: Icon, match }) => {
-          const selected = match(pathname);
+        {nav.map(({ label, to, icon: Icon, match, badge }) => {
+          const selected = match(pathname, state?.from);
           return (
             <ListItemButton
               key={to}
@@ -138,6 +175,7 @@ function SideNav({
                   },
                 }}
               />
+              {badge && pending > 0 && <Badge badgeContent={pending} color="error" className="mr-2" />}
             </ListItemButton>
           );
         })}
@@ -158,7 +196,7 @@ function SideNav({
         </Avatar>
         <Box>
           <Typography variant="body2" className="font-medium">
-            {"Pia"} {"Martinez"}
+            {user?.name}
           </Typography>
           <Typography variant="caption" className="opacity-72">
             {"Lic. Psicopedagogía"}
@@ -171,6 +209,7 @@ function SideNav({
 
 export default function AppLayout() {
   const theme = useTheme();
+  const { user } = useAuth();
 
   // Detecta si la pantalla es de tamaño móvil utilizando el hook useMediaQuery y el tema de Material-UI.
   const mobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -215,13 +254,16 @@ export default function AppLayout() {
                     <MenuIcon />
                   </IconButton>
                 )}
-                <Button
-                  startIcon={<PersonIcon />}
-                  component={RouterLink}
-                  to="/perfil"
-                >
-                  Perfil
-                </Button>
+                {/* El perfil es de psicopedagogos: el administrador no tiene esos datos. */}
+                {user?.role !== ROLES.ADMIN && (
+                  <Button
+                    startIcon={<PersonIcon />}
+                    component={RouterLink}
+                    to="/perfil"
+                  >
+                    Perfil
+                  </Button>
+                )}
                 <Tooltip title="Cerrar sesión">
                   <IconButton aria-label="Cerrar sesión">
                     <LogoutIcon />

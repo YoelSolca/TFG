@@ -1,4 +1,5 @@
-﻿using Backend.Application.Common;
+﻿using Backend.Api.Security;
+using Backend.Application.Common;
 using Backend.Application.DTO;
 using Backend.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -10,8 +11,19 @@ namespace Backend.Api.Controllers
     [Route("api/[controller]")]
     public class PsicopedagogoController(IPsicopedagogoService psicopedagogoService) : Controller
     {
+
+        [HttpGet()]
+        [Authorize(Policy = Politicas.Administrador)]
+        [ProducesResponseType<PagedResponse<PsicopedagogoDto>>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> GetAll([FromQuery] PsicopedagogoSearchCriteria criteria, CancellationToken ct = default)
+           => Ok(await psicopedagogoService.GetPsicopedagogosAsync(criteria, ct));
+
         [HttpGet("{psicopedagogoId:int}")]
+        [Authorize(Policy = Politicas.Administrador)]
         [ProducesResponseType<PsicopedagogoDto>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(int psicopedagogoId, CancellationToken ct)
         {
@@ -22,18 +34,52 @@ namespace Backend.Api.Controllers
         [HttpPost]
         [AllowAnonymous]
         [ProducesResponseType<PsicopedagogoDto>(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<IActionResult> Create(CreatePsicopedagogoRequest request, CancellationToken ct)
         {
             var result = await psicopedagogoService.CreatepsicopedagogoAsync(request, ct);
-            return CreatedAtAction(nameof(GetById), new { psicopedagogoId = result.Value!.PersonaId }, result.Value);
+            return result.IsSuccess
+                ? CreatedAtAction(nameof(GetById), new { psicopedagogoId = result.Value!.PersonaId }, result.Value)
+                : ToError(result.Error, result.ErrorCode);
         }
 
-        [HttpPut("{psicopedagogoId:int}")]
-        [ProducesResponseType<PsicopedagogoDto>(StatusCodes.Status200OK)]
+        [HttpGet("me")]
+        [ProducesResponseType<PerfilDto>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> UpdateAsync(int psicopedagogoId, UpsertPsicopedagogoRequest request, CancellationToken ct)
+        public async Task<IActionResult> GetPerfil(CancellationToken ct)
         {
-            var result = await psicopedagogoService.UpdateAsync(psicopedagogoId, request, ct);
+            var result = await psicopedagogoService.GetPerfilAsync(ct);
+            return result.IsSuccess ? Ok(result.Value) : ToError(result.Error, result.ErrorCode);
+        }
+
+        [HttpPut("me")]
+        [ProducesResponseType<PerfilDto>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> UpdatePerfil(UpdatePerfilRequest request, CancellationToken ct)
+        {
+            var result = await psicopedagogoService.UpdatePerfilAsync(request, ct);
+            return result.IsSuccess ? Ok(result.Value) : ToError(result.Error, result.ErrorCode);
+        }
+
+        [HttpPut("me/password")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ChangePassword(ChangePasswordRequest request, CancellationToken ct)
+        {
+            var result = await psicopedagogoService.ChangePasswordAsync(request, ct);
+            return result.IsSuccess ? NoContent() : ToError(result.Error, result.ErrorCode);
+        }
+
+        [HttpPut("{psicopedagogoId:int}/state")]
+        [Authorize(Policy = Politicas.Administrador)]
+        [ProducesResponseType<PsicopedagogoDto>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateAsync(int psicopedagogoId, UpdateStateRequest request, CancellationToken ct)
+        {
+            var result = await psicopedagogoService.UpdateStateAsync(psicopedagogoId, request, ct);
             return result.IsSuccess ? Ok(result.Value) : ToError(result.Error, result.ErrorCode);
         }
 
@@ -42,6 +88,8 @@ namespace Backend.Api.Controllers
             var status = code switch
             {
                 ErrorCodes.NotFound => StatusCodes.Status404NotFound,
+                ErrorCodes.Unauthorized => StatusCodes.Status401Unauthorized,
+                ErrorCodes.Duplicate or ErrorCodes.EmailTaken => StatusCodes.Status409Conflict,
                 _ => StatusCodes.Status400BadRequest
             };
 

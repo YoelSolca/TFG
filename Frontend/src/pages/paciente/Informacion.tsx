@@ -1,16 +1,22 @@
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import {
   Link as RouterLink,
   useOutletContext,
   useParams,
 } from "react-router-dom";
-import { PacienteDetalle } from "../../Model/PacienteDetalle.model";
+import {
+  PacienteDetalle,
+  TiposDificultad,
+} from "../../Model/PacienteDetalle.model";
 import { KeyValue, SectionHeader } from "../../components/common";
 import {
   Box,
   Button,
   Card,
+  Checkbox,
   Chip,
+  FormControlLabel,
+  FormGroup,
   Grid,
   IconButton,
   MenuItem,
@@ -25,6 +31,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import dayjs from "dayjs";
 import { guardarCambiosPaciente } from "../../actions/pacientes.action";
+import { obtenerTiposDificultad } from "../../actions/tiposDificultad.action";
 
 function DatosPersonales({
   editing,
@@ -200,12 +207,40 @@ export default function Informacion() {
   }>();
   const { id } = useParams();
   const [editing, setEditing] = useState(false);
+  const [catalogoDificultades, setCatalogoDificultades] = useState<
+    TiposDificultad[]
+  >([]);
+  const [errorDificultades, setErrorDificultades] = useState("");
 
-  const token = import.meta.env.VITE_TOKEN_DEV;
+  useEffect(() => {
+    obtenerTiposDificultad()
+      .then(setCatalogoDificultades)
+      .catch((error) => {
+        console.error("Error al obtener los tipos de dificultad:", error);
+      });
+  }, []);
+
+  const alternarDificultad = (tipo: TiposDificultad) => {
+    setErrorDificultades("");
+    setForm((f) => {
+      if (!f) return f;
+      const elegida = f.tiposDificultad.some((t) => t.id === tipo.id);
+      return {
+        ...f,
+        tiposDificultad: elegida
+          ? f.tiposDificultad.filter((t) => t.id !== tipo.id)
+          : [...f.tiposDificultad, tipo],
+      };
+    });
+  };
 
   async function guardarCambios() {
     if (form) {
-      guardarCambiosPaciente(token, id!, form)
+      if (form.tiposDificultad.length === 0) {
+        setErrorDificultades("Elegí al menos una dificultad");
+        return;
+      }
+      guardarCambiosPaciente(id!, form)
         .then(() => {
           setPaciente(form); // Actualiza el estado del paciente con los datos del formulario
           setEditing(false);
@@ -229,6 +264,7 @@ export default function Informacion() {
             editing={editing}
             onEdit={() => {
               setEditing(true);
+              setErrorDificultades("");
               setForm(paciente);
             }}
             onClose={() => setEditing(false)}
@@ -288,19 +324,44 @@ export default function Informacion() {
               }
             />
             <Box>
-              <Typography variant="caption" color="text.secondary">
+              <Typography
+                variant="caption"
+                color={errorDificultades ? "error" : "text.secondary"}
+              >
                 Dificultades trabajadas
+                {errorDificultades && ` · ${errorDificultades}`}
               </Typography>
-              <Box className="mt-2">
-                {paciente.tiposDificultad.map((tipo) => (
-                  <Chip
-                    key={tipo.id}
-                    label={tipo.nombre}
-                    color="primary"
-                    variant="outlined"
-                  />
-                ))}
-              </Box>
+              {editing ? (
+                <FormGroup className="grid grid-cols-1 sm:grid-cols-2">
+                  {catalogoDificultades.map((tipo) => (
+                    <FormControlLabel
+                      key={tipo.id}
+                      control={
+                        <Checkbox
+                          checked={
+                            form?.tiposDificultad.some((t) => t.id === tipo.id) ??
+                            false
+                          }
+                          onChange={() => alternarDificultad(tipo)}
+                        />
+                      }
+                      label={tipo.nombre}
+                      slotProps={{ typography: { variant: "body2" } }}
+                    />
+                  ))}
+                </FormGroup>
+              ) : (
+                <Stack direction="row" useFlexGap className="gap-2 flex-wrap mt-2">
+                  {paciente.tiposDificultad.map((tipo) => (
+                    <Chip
+                      key={tipo.id}
+                      label={tipo.nombre}
+                      color="primary"
+                      variant="outlined"
+                    />
+                  ))}
+                </Stack>
+              )}
             </Box>
           </Card>
         </Grid>
@@ -321,7 +382,14 @@ export default function Informacion() {
 
             {editing && (
               <Stack direction="row" spacing={1.5} className="justify-end">
-                <Button onClick={() => setEditing(false)}>Cancelar</Button>
+                <Button
+                  onClick={() => {
+                    setErrorDificultades("");
+                    setEditing(false);
+                  }}
+                >
+                  Cancelar
+                </Button>
 
                 <Button
                   variant="contained"

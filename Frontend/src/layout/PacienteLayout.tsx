@@ -15,6 +15,7 @@ import { formatearEdad } from "../utils/edad";
 const PATIENT_TABS = [
   { label: "Información", path: "informacion" },
   { label: "Historial", path: "historial" },
+  { label: "Seguimiento", path: "seguimiento" },
   { label: "Informes", path: "informes" },
 ];
 
@@ -61,6 +62,7 @@ function PatientHeader({
         <PersonAvatar
           initials={patient.nombre.charAt(0) + patient.apellido.charAt(0)}
           size={56}
+          colorId={patient.id}
         />
         <Box className="flex-1 min-w-40">
           <Typography variant="h5" component="h1">
@@ -81,11 +83,10 @@ function PatientHeader({
 // Pide el paciente una sola vez y se lo reparte a las pantallas hijas con <Outlet context>.
 export default function PacienteLayout() {
   const { id } = useParams();
-  const token = import.meta.env.VITE_TOKEN_DEV;
   const [paciente, setPaciente] = useState<PacienteDetalle | null>(null);
 
   useEffect(() => {
-    obtenerPacientePorId(token, id!).then(setPaciente).catch(console.error);
+    obtenerPacientePorId(id!).then(setPaciente).catch(console.error);
   }, [id]);
 
   if (!paciente) {

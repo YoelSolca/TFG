@@ -9,7 +9,7 @@ export interface EjercicioListItem {
     id:            number;
     nombre:        string;
     tipoEjercicio: string;
-    descripcion:   string;
+    descripcion:   string | null;
 }
 
 

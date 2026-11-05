@@ -1,14 +1,14 @@
-import { HistorialPacienteResponse, PacientesResponse } from "../Model/paciente.model";
+import { HistorialPacienteResponse, PacientesResponse, SesionSeguimiento } from "../Model/paciente.model";
 import { PacienteDetalle } from "../Model/PacienteDetalle.model";
 import { backendApi } from "./api/backendApi";
 
-export const obtenerPacientes = async (token: string, search: string, tipoDificultadId?: number, page: number = 1): Promise<PacientesResponse> => {
+export const obtenerPacientes = async (search: string, tipoDificultadId?: number, page: number = 1, pageSize: number = 10): Promise<PacientesResponse> => {
   try {
-    const response = await backendApi(token).get("/api/pacientes/", {
+    const response = await backendApi().get("/api/pacientes/", {
         params: {
            search: search,
            page: page,
-           pageSize: 10,
+           pageSize: pageSize,
            tipoDificultadId: tipoDificultadId,
         },
     });
@@ -20,9 +20,9 @@ export const obtenerPacientes = async (token: string, search: string, tipoDificu
   }
 }
 
-export const obtenerPacientePorId = async (token: string, id: string) => {
+export const obtenerPacientePorId = async (id: string) => {
   try {
-    const response = await backendApi(token).get(`/api/pacientes/${id}/informacion`);
+    const response = await backendApi().get(`/api/pacientes/${id}/informacion`);
 
     return response.data as Promise<PacienteDetalle>;
   } catch (error) {
@@ -31,9 +31,9 @@ export const obtenerPacientePorId = async (token: string, id: string) => {
   }
 }
 
-export const obtenerHistorialPaciente = async (token: string, id: string, tipoEjercicioId?: number, fecha?: Date, page?: number, pageSize?: number) : Promise<HistorialPacienteResponse> => {
+export const obtenerHistorialPaciente = async (id: string, tipoEjercicioId?: number, fecha?: Date, page?: number, pageSize?: number) : Promise<HistorialPacienteResponse> => {
   try {
-    const response = await backendApi(token).get(`/api/pacientes/${id}/historial`, {
+    const response = await backendApi().get(`/api/pacientes/${id}/historial`, {
       params: {
         page: page,
         pageSize: pageSize,
@@ -49,9 +49,25 @@ export const obtenerHistorialPaciente = async (token: string, id: string, tipoEj
   }
 }
 
-export const obtenerInformesPaciente = async (token: string, id: string, fecha?: Date, page?: number, pageSize?: number) => {
+// desde y hasta viajan como texto "YYYY-MM-DD" para que la zona horaria no corra el día.
+export const obtenerSeguimientoPaciente = async (id: string, desde?: string, hasta?: string): Promise<SesionSeguimiento[]> => {
   try {
-    const response = await backendApi(token).get(`/api/pacientes/${id}/informes`, {
+    const response = await backendApi().get(`/api/pacientes/${id}/seguimiento`, {
+      params: {
+        desde: desde,
+        hasta: hasta,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error al obtener el seguimiento del paciente:", error);
+    throw error;
+  }
+};
+
+export const obtenerInformesPaciente = async (id: string, fecha?: Date, page?: number, pageSize?: number) => {
+  try {
+    const response = await backendApi().get(`/api/pacientes/${id}/informes`, {
       params: {
         page: page,
         pageSize: pageSize, 
@@ -65,9 +81,13 @@ export const obtenerInformesPaciente = async (token: string, id: string, fecha?:
   }
 };
 
-export const guardarCambiosPaciente = async (token: string, id: string, paciente: PacienteDetalle) => {
+export const guardarCambiosPaciente = async (id: string, paciente: PacienteDetalle) => {
   try {
-    const response = await backendApi(token).put(`/api/pacientes/${id}`, paciente);
+    // El servidor recibe solo los ids de las dificultades elegidas.
+    const response = await backendApi().put(`/api/pacientes/${id}`, {
+      ...paciente,
+      tiposDificultadIds: paciente.tiposDificultad.map((t) => t.id),
+    });
     return response.data;
   } catch (error) {
     console.error("Error al guardar cambios del paciente:", error);

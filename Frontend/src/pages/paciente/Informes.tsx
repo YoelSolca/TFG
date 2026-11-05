@@ -13,7 +13,6 @@ import dayjs from "dayjs";
 import "dayjs/locale/es";
 
 export default function InformesPacientes() {
-  const token = import.meta.env.VITE_TOKEN_DEV;
   const [informes, setInformes] = useState<PacienteInformeItem[]>([]);
   const { id } = useParams();
   const [fecha, setFecha] = useState<Date>();
@@ -22,7 +21,7 @@ export default function InformesPacientes() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    obtenerInformesPaciente(token, id!, fecha)
+    obtenerInformesPaciente(id!, fecha)
       .then((response) => {
         console.log("Informes del paciente:", response);
         setInformes(response.items);

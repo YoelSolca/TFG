@@ -48,8 +48,10 @@ namespace Backend.Infrastructure.Queries
 
         public async Task<PagedResponse<PacienteHistorialItemDto>> GetHistorialAsync(int pacienteId, int psicopedagogoId, int? tipoEjercicioId, DateTime? fecha, int page, int pageSize, CancellationToken ct = default)
         {
+            // El historial son los ejercicios ya realizados: los de una sesión planificada o en curso todavía no tienen resultado.
             var query = context.SesionEjercicio.AsNoTracking()
-                        .Where(se => se.Sesion.PsicopedagogoPaciente.PsicopedagogoId == psicopedagogoId 
+                        .Where(se => se.Resultado != null
+                               && se.Sesion.PsicopedagogoPaciente.PsicopedagogoId == psicopedagogoId
                                && se.Sesion.PsicopedagogoPaciente.PacienteId == pacienteId
                                && se.Sesion.PsicopedagogoPaciente.FechaFin == null);
 
@@ -71,7 +73,7 @@ namespace Backend.Infrastructure.Queries
                            se.Sesion.Fecha,
                            se.Ejercicio.TipoEjercicio.Nombre,
                            se.Ejercicio.Nombre,
-                           se.Resultado.Aciertos,
+                           se.Resultado!.Aciertos,
                            se.Resultado.Errores,
                            se.Resultado.TiempoSegundos,
                            se.Resultado.Observaciones,
@@ -80,6 +82,49 @@ namespace Backend.Infrastructure.Queries
 
 
             return new PagedResponse<PacienteHistorialItemDto>(items, total, page, pageSize);
+        }
+
+        public async Task<IReadOnlyList<SesionSeguimientoDto>> GetSeguimientoAsync(int pacienteId, int psicopedagogoId, DateTime? desde, DateTime? hasta, CancellationToken ct = default)
+        {
+            // Igual que el historial, solo cuentan los ejercicios con resultado; sin paginar porque el gráfico necesita todo el período.
+            var query = context.SesionEjercicio.AsNoTracking()
+                        .Where(se => se.Resultado != null
+                               && se.Sesion.PsicopedagogoPaciente.PsicopedagogoId == psicopedagogoId
+                               && se.Sesion.PsicopedagogoPaciente.PacienteId == pacienteId
+                               && se.Sesion.PsicopedagogoPaciente.FechaFin == null);
+
+            if (desde is DateTime d)
+                query = query.Where(se => se.Sesion.Fecha >= d.Date);
+
+            if (hasta is DateTime h)
+            {
+                var finDelDia = h.Date.AddDays(1);
+                query = query.Where(se => se.Sesion.Fecha < finDelDia);
+            }
+
+            var filas = await query
+                .OrderBy(se => se.Sesion.Fecha)
+                .ThenBy(se => se.SesionId)
+                .ThenBy(se => se.Orden)
+                .Select(se => new
+                {
+                    se.SesionId,
+                    se.Sesion.Fecha,
+                    Ejercicio = new EjercicioSeguimientoDto(
+                        se.EjercicioId,
+                        se.Ejercicio.Nombre,
+                        se.Ejercicio.TipoEjercicioId,
+                        se.Ejercicio.TipoEjercicio.Nombre,
+                        se.Resultado!.Aciertos,
+                        se.Resultado.Errores,
+                        se.Resultado.Observaciones)
+                })
+                .ToListAsync(ct);
+
+            return filas
+                .GroupBy(f => new { f.SesionId, f.Fecha })
+                .Select(g => new SesionSeguimientoDto(g.Key.SesionId, g.Key.Fecha, g.Select(f => f.Ejercicio).ToList()))
+                .ToList();
         }
 
         public async Task<PagedResponse<PacienteInformeItemDto>> GetInformesAsync(int pacienteId, int psicopedagogoId, DateTime? fecha, int page, int pageSize, CancellationToken ct = default)

@@ -3,16 +3,50 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Backend.Application.DTO;
 
-public record SesionDto(int Id, int PacienteId, int PsicopedagogoId, DateTime Fecha, IReadOnlyList<int> EjercicioIds)
+public record SesionDto(int Id, int PacienteId, int PsicopedagogoId, DateTime Fecha, EstadoSesion Estado, IReadOnlyList<int> EjercicioIds)
 {
     public static SesionDto FromEntity(Sesion s) => new(
-        s.Id, s.PacienteId, s.PsicopedagogoId, s.Fecha, s.SesionEjercicios.Select(se => se.EjercicioId).ToList());
+        s.Id, s.PacienteId, s.PsicopedagogoId, s.Fecha, s.Estado,
+        s.SesionEjercicios.OrderBy(se => se.Orden).ThenBy(se => se.EjercicioId).Select(se => se.EjercicioId).ToList());
 }
 
+public record SesionListItemDto(int Id, int PacienteId, string Nombre, string Apellido, DateTime Fecha, string? Objetivo, IReadOnlyList<string> Areas)
+{
+    public static SesionListItemDto FromEntity(Sesion s) => new(
+        s.Id, s.PacienteId,
+        s.PsicopedagogoPaciente.Paciente.Persona.Nombre,
+        s.PsicopedagogoPaciente.Paciente.Persona.Apellido,
+        s.Fecha,
+        s.PsicopedagogoPaciente.Intervencion.objetivo,
+        s.PsicopedagogoPaciente.Intervencion.TiposDificultad.Select(t => t.TipoDificultad.Nombre).ToList());
+}
+
+public record SesionEjercicioItemDto(int EjercicioId, string Ejercicio, string TipoEjercicio, string Icono, int Orden, int? TiempoSegundos)
+{
+    public static SesionEjercicioItemDto FromEntity(SesionEjercicio se) => new(
+        se.EjercicioId,
+        se.Ejercicio.Nombre,
+        se.Ejercicio.TipoEjercicio.Nombre,
+        se.Ejercicio.TipoEjercicio.icono,
+        se.Orden,
+        se.Resultado?.TiempoSegundos);
+}
+
+public record SesionEjerciciosCriteria(int Page = 1, int PageSize = 5);
+
+// El profesional no viaja en la petición: sale del token. EjercicioIds va en el orden en que se van a hacer.
 public record CreateSesionRequest(
     [Required] int PacienteId,
-    [Required] int PsicopedagogoId,
     [Required, MinLength(1)] IReadOnlyList<int> EjercicioIds
+);
+
+
+public record SesionSearchCriteria
+(
+    string? NombreApellido,
+    EstadoSesion? Estado,
+    int Page = 1,
+    int PageSize = 3
 );
 
 public record UpsertSesionRequest(

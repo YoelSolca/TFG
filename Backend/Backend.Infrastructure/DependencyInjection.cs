@@ -1,6 +1,8 @@
 ﻿using Backend.Application.Interfaces;
+using Backend.Application.Options;
 using Backend.Domain.Interfaces;
 using Backend.Infrastructure.Data;
+using Backend.Infrastructure.Email;
 using Backend.Infrastructure.Queries;
 using Backend.Infrastructure.Repositories;
 using Backend.Infrastructure.Security;
@@ -35,6 +37,9 @@ namespace Backend.Infrastructure
             services.AddScoped<IResultadoRepository, ResultadoRepository>();
             services.AddScoped<IInformeRepository, InformeRepository>();
             services.AddScoped<ITipoEjercicioQueries, TipoEjercicioQueries>();
+
+            services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
+            services.AddScoped<IEmailSender, SmtpEmailSender>();
 
             return services;
         }

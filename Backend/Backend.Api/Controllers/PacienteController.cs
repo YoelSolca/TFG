@@ -38,6 +38,16 @@ namespace Backend.Api.Controllers
             return result.IsSuccess ? Ok(result.Value) : ToError(result.Error, result.ErrorCode);
         }
 
+        [HttpGet("{pacienteId:int}/seguimiento")]
+        [ProducesResponseType<IReadOnlyList<SesionSeguimientoDto>>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetSeguimiento(int pacienteId, DateTime? desde, DateTime? hasta, CancellationToken ct = default)
+        {
+            var result = await pacienteService.GetSeguimientoAsync(pacienteId, desde, hasta, ct);
+            return result.IsSuccess ? Ok(result.Value) : ToError(result.Error, result.ErrorCode);
+        }
+
         [HttpGet("{pacienteId:int}/informes")]
         [ProducesResponseType<PacienteDetalleDto>(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]

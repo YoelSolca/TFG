@@ -13,6 +13,18 @@ import { createContext, ReactNode, useContext, useState } from "react";
 import { User } from "./Model/psicopedagogo.model";
 import Login from "./pages/auth/login";
 import Reset from "./pages/auth/reset";
+import Solicitudes from "./pages/admin/Solicitudes";
+import Profesionales from "./pages/admin/Profesionales";
+import Sesiones from "./pages/sesiones/sesiones";
+import SesionEjercicios from "./pages/sesiones/SesionEjercicios";
+import EjercicioResultado from "./pages/sesiones/EjercicioResultado";
+import EjercicioJuego from "./pages/sesiones/EjercicioJuego";
+import EjerciciosRealizados from "./pages/sesiones/EjerciciosRealizados";
+import InformesGeneral from "./pages/Informes";
+import InformeDetalle from "./pages/InformeDetalle";
+import Inicio from "./pages/Inicio";
+import Perfil from "./pages/Perfil";
+import Seguimiento from "./pages/paciente/Seguimiento";
 
 export const ROLES = { ADMIN: 'Administrador', PRO: 'Psicopedagogo' };
 
@@ -79,19 +91,36 @@ function App() {
         </Route>
       </Route>
 
+      <Route path="admin" element={<RequireRole role={ROLES.ADMIN} />}>
+        <Route element={<AppLayout />}>
+          <Route index element={<Solicitudes />} />
+          <Route path="profesionales" element={<Profesionales />} />
+        </Route>
+      </Route>
+
+
       <Route element={<RequireRole role={ROLES.PRO} />}>
         <Route element={<AppLayout />}>
-          <Route index element={<Pacientes />} />
+          <Route index element={<Inicio />} />
+          <Route path="/perfil" element={<Perfil />} />
+          <Route path="/pacientes" element={<Pacientes />} />
           <Route path="/pacientes/:id" element={<PacienteLayout />}>
             <Route path="informacion" element={<Informacion />} />
             <Route path="historial" element={<Historial />} />
             <Route path="informes" element={<Informes />} />
+            <Route path="seguimiento" element={<Seguimiento />} />
           </Route>
-          <Route
-            path="/sesiones/nueva/ejercicios/:patientId"
-            element={<NuevaSesionEjercicios />}
-          />
+         <Route path="/sesiones/nueva/ejercicios/:patientId"element={<NuevaSesionEjercicios />}/>
+          <Route path="/ejercicios" element={<EjerciciosRealizados />} />
+          <Route path="/informes" element={<InformesGeneral />} />
+          <Route path="/pacientes/:id/informes/:informeId" element={<InformeDetalle />} />
+          <Route path="/sesiones" element={<Sesiones />} />
+          <Route path="/sesiones/:id" element={<SesionEjercicios />}/>
+          <Route path="/sesiones/:id/ejercicios/:ejercicioId" element={<EjercicioJuego />}/>
+          <Route path="/sesiones/:id/ejercicios/:ejercicioId/resultado" element={<EjercicioResultado />}/>
         </Route>
+
+
       </Route>
     </Routes>
   );

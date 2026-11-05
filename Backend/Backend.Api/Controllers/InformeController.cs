@@ -10,15 +10,17 @@ namespace Backend.Api.Controllers
     public class InformeController(IInformeService informeService) : Controller
     {
         [HttpGet]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetAll([FromQuery] int psicopedagogoId, CancellationToken ct)
+        [ProducesResponseType<PagedResponse<InformeListItemDto>>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetAll([FromQuery] InformeSearchCriteria criteria, DateTime? fecha, CancellationToken ct)
         {
-            var result = await informeService.GetAllAsync(psicopedagogoId, ct);
-            return Ok(result.Value);
+            var result = await informeService.GetAllAsync(criteria, fecha, ct);
+            return result.IsSuccess ? Ok(result.Value) : ToError(result.Error, result.ErrorCode);
         }
 
         [HttpGet("{id:int}")]
-        [ProducesResponseType<InformeDto>(StatusCodes.Status200OK)]
+        [ProducesResponseType<InformeDetalleDto>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(int id, CancellationToken ct)
         {
@@ -41,6 +43,7 @@ namespace Backend.Api.Controllers
             {
                 ErrorCodes.NotFound => StatusCodes.Status404NotFound,
                 ErrorCodes.Forbidden => StatusCodes.Status403Forbidden,
+                ErrorCodes.Unauthorized => StatusCodes.Status401Unauthorized,
                 _ => StatusCodes.Status400BadRequest
             };
 

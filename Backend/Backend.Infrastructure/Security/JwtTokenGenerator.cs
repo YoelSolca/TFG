@@ -11,7 +11,9 @@ namespace Backend.Infrastructure.Security
 {
     public class JwtTokenGenerator(IOptions<JwtOptions> options) : ITokenGenerator
     {
-        public const string PsicopedagogoClaim = "psicopedagogoId";
+        public const string UserClaim = "userId";
+        // Con el rol dentro del token la API puede dejar los endpoints de administración solo para el administrador.
+        public const string RolClaim = "rol";
         private readonly JwtOptions _options = options.Value;
 
         public (string Token, DateTime ExpiresAt) Generate(Usuario user)
@@ -28,7 +30,8 @@ namespace Backend.Infrastructure.Security
             audience: _options.Audience,
             claims:
             [
-                new Claim(PsicopedagogoClaim, user.PersonaId.ToString()),
+                new Claim(UserClaim, user.PersonaId.ToString()),
+                new Claim(RolClaim, user.Rol.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, user.CorreoElectronico)
             ],
             expires: expiresAt,

@@ -7,6 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Email\Templates\*.html" />
+    <EmbeddedResource Include="Email\Templates\*.txt" />
+    <EmbeddedResource Include="Email\Templates\*.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Backend.Application\Backend.Application.csproj" />
     <ProjectReference Include="..\Backend.Domain\Backend.Domain.csproj" />
   </ItemGroup>

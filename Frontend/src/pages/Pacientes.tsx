@@ -12,13 +12,14 @@ import {
   Chip,
   Stack,
   TextField,
+  Typography,
   InputAdornment,
   MenuItem,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { formatearEdad } from "../utils/edad";
 import { useNavigate } from "react-router-dom";
-import { PageHeader, TablePager } from "../components/common";
+import { PageHeader, PersonAvatar, TablePager } from "../components/common";
 import SearchIcon from "@mui/icons-material/Search";
 import { obtenerPacientes } from "../actions/pacientes.action";
 import { obtenerTiposDificultad } from "../actions/tiposDificultad.action";
@@ -36,7 +37,6 @@ function Pacientes() {
   //debouncedSearch se actualiza después de un retraso de 300 ms desde la última vez que el usuario escribió en el campo de búsqueda.
   //setDebouncedSearch se utiliza para actualizar el estado de debouncedSearch después del retraso.
 
-  const token = import.meta.env.VITE_TOKEN_DEV;
 
   //Se ejecuta cada vez que el valor de search cambia, y establece un temporizador para actualizar debouncedSearch después de 300 ms.
   // Esto ayuda a reducir la cantidad de solicitudes de búsqueda mientras el usuario está escribiendo.
@@ -47,7 +47,6 @@ function Pacientes() {
 
   useEffect(() => {
     obtenerPacientes(
-      token,
       debouncedSearch,
       tipoId === "" ? undefined : tipoId,
       page,
@@ -62,7 +61,7 @@ function Pacientes() {
   }, [debouncedSearch, tipoId, page]); // Se ejecuta cada vez que debouncedSearch o tipoId cambian, y realiza la solicitud para obtener los pacientes filtrados según los criterios de búsqueda y tipo de dificultad seleccionados.
 
   useEffect(() => {
-    obtenerTiposDificultad(token)
+    obtenerTiposDificultad()
       .then((response) => {
         setTiposDificultad(response);
       })
@@ -146,7 +145,16 @@ function Pacientes() {
                 onClick={() => navigate(`/pacientes/${p.id}/informacion`)}
               >
                 <TableCell component="th" scope="row">
-                  {p.nombre} {p.apellido}
+                  <Stack direction="row" spacing={1.5} className="items-center">
+                    <PersonAvatar
+                      initials={p.nombre.charAt(0) + p.apellido.charAt(0)}
+                      size={32}
+                      colorId={p.id}
+                    />
+                    <Typography variant="body2" className="font-medium">
+                      {p.nombre} {p.apellido}
+                    </Typography>
+                  </Stack>
                 </TableCell>
                 <TableCell>{p.documento}</TableCell>
                 <TableCell>{formatearEdad(p.fechaNacimiento)}</TableCell>
