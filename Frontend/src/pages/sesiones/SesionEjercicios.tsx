@@ -1,12 +1,23 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Card, Chip, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
+import {
+  Card,
+  Chip,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+} from "@mui/material";
 import TimerOutlinedIcon from "@mui/icons-material/TimerOutlined";
 import dayjs from "dayjs";
-import { BackButton, ExerciseTypeIcon, PageHeader, TablePager } from "../../components/common";
-import { obtenerEjerciciosSesion, obtenerSesion } from "../../actions/sesion.action";
-import { SesionEjercicioItem, SesionListItem } from "../../Model/sesion.model";
-import { formatearTiempo } from "../../utils/tiempo";
+import { BackButton, ExerciseTypeIcon, PageHeader, TablePager } from "../../components/Common";
+import { obtenerEjerciciosSesion, obtenerSesion } from "../../actions/Sesion.action";
+import { SesionEjercicioItem, SesionListItem } from "../../models/Sesion.model";
+import { formatearTiempo } from "../../utils/Tiempo";
 
 export default function SesionEjercicios() {
   const { id } = useParams();
@@ -38,7 +49,9 @@ export default function SesionEjercicios() {
       <BackButton to="/sesiones">Volver a sesiones</BackButton>
       <PageHeader
         title="Ejercicios de la sesión"
-        subtitle={sesion ? `${sesion.nombre} ${sesion.apellido} · ${dayjs(sesion.fecha).format("DD/MM/YYYY · HH:mm")} hs` : ""}
+        subtitle={
+          sesion ? `${sesion.nombre} ${sesion.apellido} · ${dayjs(sesion.fecha).format("DD/MM/YYYY · HH:mm")} hs` : ""
+        }
       />
 
       <TableContainer component={Card}>
@@ -61,10 +74,14 @@ export default function SesionEjercicios() {
                 <TableCell>
                   <Stack direction="row" spacing={1.5} className="items-center">
                     <ExerciseTypeIcon icon={e.tipoEjercicio} size={36} />
-                    <Typography variant="body2" className="font-medium">{e.ejercicio}</Typography>
+                    <Typography variant="body2" className="font-medium">
+                      {e.ejercicio}
+                    </Typography>
                   </Stack>
                 </TableCell>
-                <TableCell><Chip label={e.tipoEjercicio} size="small" variant="outlined" /></TableCell>
+                <TableCell>
+                  <Chip label={e.tipoEjercicio} size="small" variant="outlined" />
+                </TableCell>
                 <TableCell>
                   <Stack direction="row" spacing={1} className="items-center">
                     <TimerOutlinedIcon fontSize="small" color="action" />

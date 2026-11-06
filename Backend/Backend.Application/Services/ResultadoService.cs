@@ -14,8 +14,7 @@ namespace Backend.Application.Services
     {
         public async Task<Result<ResultadoDetalleDto>> GetAsync(int sesionId, int ejercicioId, CancellationToken ct = default)
         {
-            var psicopedagogoId = usuarioActual.UserId;
-            var detalle = await repository.GetDetalleAsync(sesionId, ejercicioId, psicopedagogoId, ct);
+            var detalle = await repository.GetDetalleAsync(sesionId, ejercicioId, usuarioActual.UserId, ct);
 
             return detalle is null
                 ? Result<ResultadoDetalleDto>.Failure($"El ejercicio {ejercicioId} no está en la sesión {sesionId}.", ErrorCodes.NotFound)
@@ -24,11 +23,10 @@ namespace Backend.Application.Services
 
         public async Task<Result<ResultadoDto>> UpsertAsync(int sesionId, int ejercicioId, UpsertResultadoRequest request, CancellationToken ct = default)
         {
-            var psicopedagogoId = usuarioActual.UserId;
-            if (!await repository.SesionEjercicioPerteneceAsync(sesionId, ejercicioId, psicopedagogoId, ct))
+            if (!await repository.SesionEjercicioPerteneceAsync(sesionId, ejercicioId, usuarioActual.UserId, ct))
             {
                 return Result<ResultadoDto>.Failure(
-                    $"El psicopedagogo {psicopedagogoId} no tiene el ejercicio {ejercicioId} en la sesión {sesionId}.", ErrorCodes.Forbidden);
+                    $"El psicopedagogo {usuarioActual.UserId} no tiene el ejercicio {ejercicioId} en la sesión {sesionId}.", ErrorCodes.Forbidden);
             }
 
             var metricaIds = (request.Metricas ?? []).Select(m => m.MetricaId).Distinct().ToList();

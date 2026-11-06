@@ -75,13 +75,6 @@ namespace Backend.Infrastructure.Migrations
                         },
                         new
                         {
-                            Id = 3,
-                            Descripcion = "Se ordenan los elementos según su color. Trabaja la atención sostenida y la clasificación.",
-                            Nombre = "Clasificar colores",
-                            TipoEjercicioId = 1
-                        },
-                        new
-                        {
                             Id = 4,
                             Descripcion = "Juego de parejas: se dan vuelta cartas para encontrar las iguales. Trabaja la memoria visual y de corto plazo.",
                             Nombre = "Memorama",
@@ -124,10 +117,17 @@ namespace Backend.Infrastructure.Migrations
                         },
                         new
                         {
-                            Id = 10,
-                            Descripcion = "Ejercicios numéricos con tiempo limitado. Trabaja la agilidad en el cálculo.",
-                            Nombre = "Desafío de números",
-                            TipoEjercicioId = 5
+                            Id = 11,
+                            Descripcion = "Se muestra una secuencia de colores o figuras y hay que repetirla en el mismo orden. Trabaja la memoria de trabajo y la atención sostenida.",
+                            Nombre = "Repetí la secuencia",
+                            TipoEjercicioId = 2
+                        },
+                        new
+                        {
+                            Id = 12,
+                            Descripcion = "Se ordenan las letras desordenadas para formar la palabra que muestra el dibujo. Trabaja la ortografía y la escritura de palabras.",
+                            Nombre = "Ordená las letras",
+                            TipoEjercicioId = 4
                         });
                 });
 
@@ -221,12 +221,12 @@ namespace Backend.Infrastructure.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("objetivo")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("observaciones")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.HasKey("Id");
 
@@ -291,17 +291,10 @@ namespace Backend.Infrastructure.Migrations
                         },
                         new
                         {
-                            Id = 2,
-                            Descripcion = "Estímulos omitidos",
-                            Nombre = "omisiones",
+                            Id = 4,
+                            Descripcion = "Pistas usadas durante el ejercicio",
+                            Nombre = "pistas",
                             TipoAgregacion = "Suma"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Descripcion = "Nivel máximo alcanzado",
-                            Nombre = "nivelAlcanzado",
-                            TipoAgregacion = "Maximo"
                         });
                 });
 

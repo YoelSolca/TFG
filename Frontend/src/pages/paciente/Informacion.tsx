@@ -1,14 +1,8 @@
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import {
-  Link as RouterLink,
-  useOutletContext,
-  useParams,
-} from "react-router-dom";
-import {
-  PacienteDetalle,
-  TiposDificultad,
-} from "../../Model/PacienteDetalle.model";
-import { KeyValue, SectionHeader } from "../../components/common";
+import { useEffect, useState } from "react";
+import { Link as RouterLink, useOutletContext, useParams } from "react-router-dom";
+import { PacienteDetalle, TiposDificultad } from "../../models/PacienteDetalle.model";
+import { KeyValue, SectionHeader } from "../../components/Common";
+import DatosPersonales from "../../components/DatosPersonales";
 import {
   Box,
   Button,
@@ -18,185 +12,15 @@ import {
   FormControlLabel,
   FormGroup,
   Grid,
-  IconButton,
-  MenuItem,
   Stack,
   TextField,
-  Tooltip,
   Typography,
 } from "@mui/material";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 
-import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import dayjs from "dayjs";
-import { guardarCambiosPaciente } from "../../actions/pacientes.action";
-import { obtenerTiposDificultad } from "../../actions/tiposDificultad.action";
-
-function DatosPersonales({
-  editing,
-  form,
-  setForm,
-  onEdit,
-}: {
-  form: PacienteDetalle | null;
-  setForm: Dispatch<SetStateAction<PacienteDetalle | null>>;
-  editing: boolean;
-  onClose: () => void;
-  onEdit: () => void;
-}) {
-  // en Informacion.tsx o Historial.tsx
-  const { paciente } = useOutletContext<{ paciente: PacienteDetalle }>();
-
-  if (!editing) {
-    return (
-      <Card className="p-6 h-full flex flex-col gap-5">
-        <SectionHeader
-          title="Datos personales"
-          action={
-            <Tooltip title="Editar">
-              <IconButton color="primary" size="small" onClick={onEdit}>
-                <EditIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          }
-        ></SectionHeader>
-        <Grid container rowSpacing={2.5} columnSpacing={3}>
-          <Grid size={4}>
-            <KeyValue label="Nombre" value={paciente.nombre} />
-          </Grid>
-          <Grid size={4}>
-            <KeyValue label="Apellido" value={paciente.apellido} />
-          </Grid>
-          <Grid size={4}>
-            <KeyValue
-              label="DNI"
-              value={Number(paciente.documento).toLocaleString("es-AR")}
-            />
-          </Grid>
-        </Grid>
-
-        <Grid container rowSpacing={2.5} columnSpacing={3}>
-          <Grid size={4}>
-            <KeyValue
-              label="Fecha de nacimiento"
-              value={dayjs(paciente.fechaNacimiento).format("DD/MM/YYYY")}
-            />
-          </Grid>
-          <Grid size={4}>
-            <KeyValue label="Dirección" value={paciente.direccion} />
-          </Grid>
-          <Grid size={4}>
-            <KeyValue
-              label="Genero"
-              value={paciente.genero === "M" ? "Masculino" : "Femenino"}
-            />
-          </Grid>
-        </Grid>
-      </Card>
-    );
-  }
-
-  return (
-    <Card className="p-6 h-full flex flex-col gap-5">
-      <SectionHeader title="Datos personales" />
-      <Grid container spacing={2}>
-        <Grid size={4}>
-          <TextField
-            fullWidth
-            label="Nombre"
-            value={editing ? form?.nombre : paciente.nombre}
-            onChange={(e) =>
-              form && setForm({ ...form, nombre: e.target.value })
-            }
-          />
-        </Grid>
-        <Grid size={4}>
-          <TextField
-            fullWidth
-            label="Apellido"
-            value={editing ? form?.apellido : paciente.apellido}
-            onChange={(e) =>
-              form && setForm({ ...form, apellido: e.target.value })
-            }
-          />
-        </Grid>
-        <Grid size={4}>
-          <TextField
-            fullWidth
-            label="DNI"
-            value={
-              editing
-                ? form?.documento
-                : Number(paciente.documento).toLocaleString("es-AR")
-            }
-            onChange={(e) => {
-              const documento = e.target.value.replace(/[^\d+\s-]/g, "");
-              form && setForm({ ...form, documento: documento });
-            }}
-          />
-        </Grid>
-      </Grid>
-
-      <Grid container spacing={2}>
-        <Grid size={4}>
-          <DatePicker
-            slotProps={{
-              textField: { fullWidth: true },
-            }}
-            label="Fecha de nacimiento"
-            format="DD/MM/YYYY"
-            value={
-              editing
-                ? dayjs(form?.fechaNacimiento)
-                : dayjs(paciente.fechaNacimiento)
-            }
-            onChange={(nuevaFecha) =>
-              form &&
-              setForm({
-                ...form,
-                fechaNacimiento: nuevaFecha
-                  ? nuevaFecha.format("YYYY-MM-DD")
-                  : "",
-              })
-            }
-          />
-        </Grid>
-        <Grid size={4}>
-          <TextField
-            fullWidth
-            label="Dirección"
-            value={editing ? form?.direccion : paciente.direccion}
-            onChange={(e) =>
-              form && setForm({ ...form, direccion: e.target.value })
-            }
-          />
-        </Grid>
-        <Grid size={4}>
-          <TextField
-            fullWidth
-            select
-            label="Genero"
-            value={editing ? form?.genero : paciente.genero}
-            onChange={(e) =>
-              form && setForm({ ...form, genero: e.target.value })
-            }
-          >
-            {[
-              { label: "Masculino", value: "M" },
-              { label: "Femenino", value: "F" },
-              { label: "Otro", value: "O" },
-            ].map((g) => (
-              <MenuItem key={g.value} value={g.value}>
-                {g.label}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Grid>
-      </Grid>
-    </Card>
-  );
-}
+import { guardarCambiosPaciente } from "../../actions/Pacientes.action";
+import { obtenerTiposDificultad } from "../../actions/TiposDificultad.action";
 
 export default function Informacion() {
   const [form, setForm] = useState<PacienteDetalle | null>(null);
@@ -207,9 +31,7 @@ export default function Informacion() {
   }>();
   const { id } = useParams();
   const [editing, setEditing] = useState(false);
-  const [catalogoDificultades, setCatalogoDificultades] = useState<
-    TiposDificultad[]
-  >([]);
+  const [catalogoDificultades, setCatalogoDificultades] = useState<TiposDificultad[]>([]);
   const [errorDificultades, setErrorDificultades] = useState("");
 
   useEffect(() => {
@@ -227,9 +49,7 @@ export default function Informacion() {
       const elegida = f.tiposDificultad.some((t) => t.id === tipo.id);
       return {
         ...f,
-        tiposDificultad: elegida
-          ? f.tiposDificultad.filter((t) => t.id !== tipo.id)
-          : [...f.tiposDificultad, tipo],
+        tiposDificultad: elegida ? f.tiposDificultad.filter((t) => t.id !== tipo.id) : [...f.tiposDificultad, tipo],
       };
     });
   };
@@ -255,55 +75,61 @@ export default function Informacion() {
     return <div>Cargando...</div>;
   }
 
+  const ultimaSesion = paciente.ultimaSesion;
+
   return (
     <>
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, lg: "grow" }}>
           <DatosPersonales
-            // paciente={paciente}
+            paciente={paciente}
             editing={editing}
             onEdit={() => {
               setEditing(true);
               setErrorDificultades("");
               setForm(paciente);
             }}
-            onClose={() => setEditing(false)}
             form={form}
             setForm={setForm}
           />
         </Grid>
         <Grid size={{ xs: 12, lg: "auto" }} className="lg:w-[400px]">
           <Card className="p-6 h-full flex flex-col gap-4">
-            <SectionHeader
-              title="Última sesión"
-              action={
-                <Button
-                  size="small"
-                  component={RouterLink}
-                  to={`/sesiones/${paciente.ultimaSesion.id}`}
-                >
-                  Ver detalles
-                </Button>
-              }
-            />
-            <KeyValue
-              label="Fecha"
-              value={
-                dayjs(paciente.ultimaSesion.fecha).format("DD/MM/YYYY") +
-                " · " +
-                dayjs(paciente.ultimaSesion.fecha).format("HH:mm")
-              }
-            />
-            <Box>
-              <Typography variant="caption" color="text.secondary">
-                Actividades realizadas
-              </Typography>
-              <Stack direction="row" spacing={1} className="mt-2">
-                {paciente.ultimaSesion.tiposEjercicio.map((tipo) => (
-                  <Chip key={tipo} label={tipo} size="small" color="primary" />
-                ))}
-              </Stack>
-            </Box>
+            {ultimaSesion ? (
+              <>
+                <SectionHeader
+                  title="Última sesión"
+                  action={
+                    <Button size="small" component={RouterLink} to={`/sesiones/${ultimaSesion.id}`}>
+                      Ver detalles
+                    </Button>
+                  }
+                />
+                <KeyValue
+                  label="Fecha"
+                  value={
+                    dayjs(ultimaSesion.fecha).format("DD/MM/YYYY") + " · " + dayjs(ultimaSesion.fecha).format("HH:mm")
+                  }
+                />
+                <Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Actividades realizadas
+                  </Typography>
+                  <Stack direction="row" spacing={1} className="mt-2">
+                    {ultimaSesion.tiposEjercicio.map((tipo) => (
+                      <Chip key={tipo} label={tipo} size="small" color="primary" />
+                    ))}
+                  </Stack>
+                </Box>
+              </>
+            ) : (
+              <>
+                <SectionHeader title="Última sesión" />
+                <Typography variant="body2" color="text.secondary">
+                  Todavía no hay sesiones con este paciente.
+                </Typography>
+              </>
+            )}
           </Card>
         </Grid>
       </Grid>
@@ -319,15 +145,10 @@ export default function Informacion() {
               label="Objetivo"
               disabled={!editing}
               value={editing ? form?.objetivo : paciente.objetivo}
-              onChange={(e) =>
-                form && setForm({ ...form, objetivo: e.target.value })
-              }
+              onChange={(e) => form && setForm({ ...form, objetivo: e.target.value })}
             />
             <Box>
-              <Typography
-                variant="caption"
-                color={errorDificultades ? "error" : "text.secondary"}
-              >
+              <Typography variant="caption" color={errorDificultades ? "error" : "text.secondary"}>
                 Dificultades trabajadas
                 {errorDificultades && ` · ${errorDificultades}`}
               </Typography>
@@ -338,10 +159,7 @@ export default function Informacion() {
                       key={tipo.id}
                       control={
                         <Checkbox
-                          checked={
-                            form?.tiposDificultad.some((t) => t.id === tipo.id) ??
-                            false
-                          }
+                          checked={form?.tiposDificultad.some((t) => t.id === tipo.id) ?? false}
                           onChange={() => alternarDificultad(tipo)}
                         />
                       }
@@ -353,12 +171,7 @@ export default function Informacion() {
               ) : (
                 <Stack direction="row" useFlexGap className="gap-2 flex-wrap mt-2">
                   {paciente.tiposDificultad.map((tipo) => (
-                    <Chip
-                      key={tipo.id}
-                      label={tipo.nombre}
-                      color="primary"
-                      variant="outlined"
-                    />
+                    <Chip key={tipo.id} label={tipo.nombre} color="primary" variant="outlined" />
                   ))}
                 </Stack>
               )}
@@ -375,9 +188,7 @@ export default function Informacion() {
               minRows={3}
               disabled={!editing}
               value={editing ? form?.observaciones : paciente.observaciones}
-              onChange={(e) =>
-                form && setForm({ ...form, observaciones: e.target.value })
-              }
+              onChange={(e) => form && setForm({ ...form, observaciones: e.target.value })}
             />
 
             {editing && (
@@ -391,11 +202,7 @@ export default function Informacion() {
                   Cancelar
                 </Button>
 
-                <Button
-                  variant="contained"
-                  startIcon={<SaveIcon />}
-                  onClick={guardarCambios}
-                >
+                <Button variant="contained" startIcon={<SaveIcon />} onClick={guardarCambios}>
                   Guardar cambios
                 </Button>
               </Stack>

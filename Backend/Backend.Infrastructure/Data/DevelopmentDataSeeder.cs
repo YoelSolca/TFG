@@ -13,11 +13,20 @@ namespace Backend.Infrastructure.Data
     {
         private const string DocumentoPsicopedagogo = "30111222";
         private const string DocumentoAdministrador = "28999000";
-        private const string Obs = "Se observa buena concentración en la primera parte. En la segunda aumentan los errores por distracción. Se recomienda continuar con actividades visuales.";
+        // Observaciones de ejemplo: varias y distintas, para que el Historial y el informe no muestren siempre el mismo texto.
+        private static readonly string[] Observaciones =
+        [
+            "Se observa buena concentración en la primera parte. En la segunda aumentan los errores por distracción.",
+            "Resolvió con tranquilidad y pidió ayuda solo una vez. Se la nota más segura que en la sesión anterior.",
+            "Le costó empezar, pero después de los primeros intentos mantuvo un buen ritmo hasta el final.",
+            "Se frustró con los primeros errores; con un breve aliento retomó la actividad y la terminó sola.",
+            "Trabajó con atención sostenida. Se recomienda continuar con actividades visuales.",
+            "Cometió errores por apuro más que por no saber: conviene pedirle que mire con calma antes de elegir.",
+        ];
 
         // Ids del catálogo sembrado por las migraciones.
         private const int ImagenIgual = 1, Memorama = 4, ConectarPalabras = 5, ComprensionTexto = 6,
-                          Dictado = 7, SumasRestas = 8, SeriesNumericas = 9, DesafioNumeros = 10;
+                          Dictado = 7, SumasRestas = 8, SeriesNumericas = 9;
         private const int DifAtencion = 1, DifLectoescritura = 2, DifCalculo = 3, DifMemoria = 4;
         private const int Movimientos = 1;
 
@@ -195,7 +204,7 @@ namespace Backend.Infrastructure.Data
             psico.PsicopedagogoPacientes.Add(Vinculo(juan, ahora.AddDays(-30), "Mejorar la lectura comprensiva.",
                 "Buena disposición. Se distrae con estímulos auditivos.", [DifAtencion],
                 NuevaSesion(ahora.AddDays(-21), EjercicioResuelto(ImagenIgual, 8, 2, 75, 10), EjercicioResuelto(Memorama, 15, 4, 122, 19)),
-                NuevaSesion(ahora.AddDays(-14), EjercicioResuelto(DesafioNumeros, 9, 4, 101, 13)),
+                NuevaSesion(ahora.AddDays(-14), EjercicioResuelto(SeriesNumericas, 9, 4, 101, 0)),
                 NuevaSesion(ahora.AddDays(-7), EjercicioResuelto(ImagenIgual, 10, 1, 68, 11), EjercicioResuelto(Memorama, 17, 3, 110, 21))));
 
             psico.PsicopedagogoPacientes.Add(Vinculo(melina, ahora.AddDays(-12), "Mejorar la lectoescritura.",
@@ -265,7 +274,8 @@ namespace Backend.Infrastructure.Data
                     Aciertos = aciertos,
                     Errores = errores,
                     TiempoSegundos = segundos,
-                    Observaciones = Obs,
+                    // Se elige según los números del ejercicio: es siempre la misma para los mismos datos y varía entre ejercicios.
+                    Observaciones = Observaciones[(ejercicioId + aciertos + errores + segundos) % Observaciones.Length],
                     ResultadoMetricas = movimientos > 0
                         ? new List<ResultadoMetrica> { new() { MetricaId = Movimientos, Valor = movimientos } }
                         : new List<ResultadoMetrica>()
