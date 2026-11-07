@@ -4,7 +4,6 @@ export interface PacienteDetalle {
   apellido: string;
   documento: string;
   fechaNacimiento: string;
-  direccion: string;
   genero: string;
   objetivo: string;
   observaciones: string;

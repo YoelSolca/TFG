@@ -32,6 +32,7 @@ const validateStep1 = (f: CreatePsicopedagogoRequest) => {
   if (!f.apellido.trim()) e.apellido = "Requerido";
   if (!/^\d{6,9}$/.test(f.documento.trim())) e.documento = "Ingresá solo números (6 a 9 dígitos)";
   if (!/^\d{8,13}$/.test(f.telefono.replace(/[\s-]/g, ""))) e.telefono = "Teléfono inválido";
+  if (!f.direccion.trim()) e.direccion = "Requerido";
   if (!f.genero) e.genero = "Requerido";
   if (!f.fechaNacimiento) e.fechaNacimiento = "Ingresá una fecha válida (DD/MM/AAAA)";
   else if ((calcularEdad(f.fechaNacimiento) ?? 0) < 18) e.fechaNacimiento = "Debés ser mayor de edad";
@@ -83,6 +84,7 @@ export default function Register() {
     nombre: "",
     apellido: "",
     telefono: "",
+    direccion: "",
     documento: "",
     matricula: "",
     genero: "",
@@ -197,6 +199,13 @@ export default function Register() {
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField label="Teléfono (*)" slotProps={{ htmlInput: { inputMode: "tel" } }} {...field("telefono")} />
+            </Grid>
+            <Grid size={12}>
+              <TextField
+                label="Dirección (*)"
+                slotProps={{ htmlInput: { maxLength: 100 } }}
+                {...field("direccion")}
+              />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField

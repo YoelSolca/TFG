@@ -49,9 +49,6 @@ export default function DatosPersonales({
             <KeyValue label="Fecha de nacimiento" value={dayjs(paciente.fechaNacimiento).format("DD/MM/YYYY")} />
           </Grid>
           <Grid size={4}>
-            <KeyValue label="Dirección" value={paciente.direccion} />
-          </Grid>
-          <Grid size={4}>
             <KeyValue label="Genero" value={paciente.genero === "M" ? "Masculino" : "Femenino"} />
           </Grid>
         </Grid>
@@ -108,14 +105,6 @@ export default function DatosPersonales({
                 fechaNacimiento: nuevaFecha ? nuevaFecha.format("YYYY-MM-DD") : "",
               })
             }
-          />
-        </Grid>
-        <Grid size={4}>
-          <TextField
-            fullWidth
-            label="Dirección"
-            value={editing ? form?.direccion : paciente.direccion}
-            onChange={(e) => form && setForm({ ...form, direccion: e.target.value })}
           />
         </Grid>
         <Grid size={4}>

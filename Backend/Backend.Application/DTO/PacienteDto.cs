@@ -4,9 +4,9 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Backend.Application.DTO;
 
-public record PacienteDto(int personaId, string Direccion, DateTime FechaAlta)
+public record PacienteDto(int personaId, DateTime FechaAlta)
 {
-    public static PacienteDto FromEntity(Paciente p) => new(p.PersonaId, p.Direccion, p.FechaAlta);
+    public static PacienteDto FromEntity(Paciente p) => new(p.PersonaId, p.FechaAlta);
 }
 
 public record PacienteListItemDto(int Id, string Nombre, string Apellido, string Documento, DateOnly FechaNacimiento, IReadOnlyList<string> TiposDificultad)
@@ -33,12 +33,12 @@ public record TipoEjercicioDto (int Id, string Nombre)
 
 public record PacienteDetalleDto(
     int Id, string Nombre, string Apellido, string Documento, DateOnly FechaNacimiento,
-    string Direccion, string Genero,
+    string Genero,
     string? Objetivo, string? Observaciones, IReadOnlyList<TipoDificultadDto> TiposDificultad, UltimaSesionDto? UltimaSesion)
 {
     public static PacienteDetalleDto FromEntity(PsicopedagogoPaciente atencion, Sesion? ultimaSesion) => new(
         atencion.PacienteId, atencion.Paciente.Persona.Nombre, atencion.Paciente.Persona.Apellido, atencion.Paciente.Persona.Documento,
-        atencion.Paciente.Persona.FechaNacimiento!.Value, atencion.Paciente.Direccion, atencion.Paciente.Persona.Genero!,
+        atencion.Paciente.Persona.FechaNacimiento!.Value, atencion.Paciente.Persona.Genero!,
         atencion.Intervencion.objetivo, atencion.Intervencion.observaciones,
         atencion.Intervencion.TiposDificultad.Select(t => TipoDificultadDto.FromEntity(t.TipoDificultad)).ToList(),
         ultimaSesion is null ? null : UltimaSesionDto.FromEntity(ultimaSesion));
@@ -108,7 +108,6 @@ public record RegistroPacienteResult(PacienteDto Paciente, bool Creado);
 
 // El psicopedagogo sale del token y la fecha de alta la pone el servidor, por eso no vienen en el request.
 public record CreatePacienteRequest(
-    [Required, StringLength(50)] string Direccion,
     [Required, StringLength(100)] string Nombre,
     [Required, StringLength(100)] string Apellido,
     [Required, StringLength(20)] string Documento,
@@ -119,7 +118,6 @@ public record CreatePacienteRequest(
     [Required, MinLength(1)] IReadOnlyList<int> TiposDificultadIds
 );
 public record UpsertPacienteRequest(
-    [Required, StringLength(50)] string Direccion,
     [Required, StringLength(100)] string Nombre,
     [StringLength(100)] string Apellido,
     [StringLength(20)] string Documento,

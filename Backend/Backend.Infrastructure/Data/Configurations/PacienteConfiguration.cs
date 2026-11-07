@@ -10,7 +10,9 @@ namespace Backend.Infrastructure.Data.Configurations
         {
             builder.ToTable("Paciente");
             builder.HasKey(p => p.PersonaId);
-            builder.Property(p => p.Direccion).IsRequired().HasMaxLength(50);
+
+            // Las colecciones son de solo lectura hacia afuera: Entity Framework las carga y guarda por el campo privado.
+            builder.Navigation(p => p.PsicopedagogoPacientes).UsePropertyAccessMode(PropertyAccessMode.Field);
 
             builder.HasOne(p => p.Persona)
                    .WithOne(pa => pa.Paciente)

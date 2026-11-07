@@ -8,6 +8,7 @@ namespace Backend.Infrastructure.Data.Configurations
         public void Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Sesion> builder)
         {
             builder.ToTable("Sesion");
+            builder.Navigation(x => x.SesionEjercicios).UsePropertyAccessMode(PropertyAccessMode.Field);
 
             builder.HasKey(s => s.Id);
             builder.Property(s => s.Fecha);

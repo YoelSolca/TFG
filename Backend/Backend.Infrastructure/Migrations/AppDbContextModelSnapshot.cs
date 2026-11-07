@@ -303,11 +303,6 @@ namespace Backend.Infrastructure.Migrations
                     b.Property<int>("PersonaId")
                         .HasColumnType("int");
 
-                    b.Property<string>("Direccion")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
                     b.Property<DateTime>("FechaAlta")
                         .HasColumnType("datetime2");
 
@@ -362,6 +357,11 @@ namespace Backend.Infrastructure.Migrations
                     b.Property<string>("Avatar")
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("Direccion")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Matricula")
                         .IsRequired()

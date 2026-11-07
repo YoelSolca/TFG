@@ -23,53 +23,18 @@ namespace Backend.Infrastructure.Repositories
                 .Include(se => se.Resultado).ThenInclude(r => r!.ResultadoMetricas).ThenInclude(rm => rm.Metrica)
                 .FirstOrDefaultAsync(se => se.SesionId == sesionId && se.EjercicioId == ejercicioId && se.Sesion.PsicopedagogoId == psicopedagogoId, ct);
 
-        public async Task<Resultado> UpsertAsync(Resultado resultado, CancellationToken ct = default)
-        {
-            var existente = await context.Resultado
+        // Con sus métricas y seguido por Entity Framework: la entidad decide qué cambia y después se guarda.
+        public Task<Resultado?> GetForUpdateAsync(int sesionId, int ejercicioId, CancellationToken ct = default)
+            => context.Resultado
                 .Include(r => r.ResultadoMetricas)
-                .FirstOrDefaultAsync(r => r.SesionId == resultado.SesionId && r.EjercicioId == resultado.EjercicioId, ct);
+                .FirstOrDefaultAsync(r => r.SesionId == sesionId && r.EjercicioId == ejercicioId, ct);
 
-            if (existente is null)
-            {
-                context.Resultado.Add(resultado);
-                await context.SaveChangesAsync(ct);
-                return resultado;
-            }
-
-            existente.Aciertos = resultado.Aciertos;
-            existente.Errores = resultado.Errores;
-            existente.TiempoSegundos = resultado.TiempoSegundos;
-            existente.Observaciones = resultado.Observaciones;
-            existente.FechaRegistro = resultado.FechaRegistro;
-
-            // Diff en vez de Clear + Add: reusar las filas ya trackeadas evita chocar con la clave
-            // compuesta (SesionId, EjercicioId, MetricaId) cuando una métrica se repite sin cambios.
-            var nuevasMetricaIds = resultado.ResultadoMetricas.Select(rm => rm.MetricaId).ToHashSet();
-            var actualesMetricaIds = existente.ResultadoMetricas.Select(rm => rm.MetricaId).ToHashSet();
-
-            foreach (var aQuitar in existente.ResultadoMetricas.Where(rm => !nuevasMetricaIds.Contains(rm.MetricaId)).ToList())
-                existente.ResultadoMetricas.Remove(aQuitar);
-
-            foreach (var rm in resultado.ResultadoMetricas)
-            {
-                if (actualesMetricaIds.Contains(rm.MetricaId))
-                {
-                    existente.ResultadoMetricas.First(x => x.MetricaId == rm.MetricaId).Valor = rm.Valor;
-                }
-                else
-                {
-                    existente.ResultadoMetricas.Add(new ResultadoMetrica
-                    {
-                        SesionId = existente.SesionId,
-                        EjercicioId = existente.EjercicioId,
-                        MetricaId = rm.MetricaId,
-                        Valor = rm.Valor
-                    });
-                }
-            }
-
+        public async Task AddAsync(Resultado resultado, CancellationToken ct = default)
+        {
+            context.Resultado.Add(resultado);
             await context.SaveChangesAsync(ct);
-            return existente;
         }
+
+        public Task SaveChangesAsync(CancellationToken ct = default) => context.SaveChangesAsync(ct);
     }
 }

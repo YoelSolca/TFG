@@ -157,8 +157,8 @@ export default function Evolucion() {
         <Grid size={{ xs: 12, md: 6 }}>
           <Card className="p-6 h-full flex flex-col gap-4">
             <SectionHeader
-              title="Constancia"
-              subtitle="Cada cuadrado es una semana, desde la primera sesión del período. Pasá el mouse para ver el detalle."
+              title="Continuidad del tratamiento"
+              subtitle="Cada cuadrado representa una semana del período. El color indica la cantidad de sesiones realizadas. Pasá el mouse para ver el detalle."
             />
             {constancia.total === 0 ? (
               <Typography variant="body2" color="text.secondary">
@@ -207,8 +207,8 @@ export default function Evolucion() {
         <Grid size={{ xs: 12, md: 6 }}>
           <Card className="p-6 h-full flex flex-col gap-4">
             <SectionHeader
-              title="Ejercicios realizados por área"
-              subtitle="Cuánto se trabajó cada área en el período. Una área en cero es una que todavía no se trabajó."
+              title="Áreas trabajadas"
+              subtitle="Distribución de los ejercicios realizados según el área trabajada durante el período. Las áreas con valor cero indican que aún no se registraron ejercicios."
             />
             {sesiones.length === 0 ? (
               <Typography variant="body2" color="text.secondary">
@@ -223,8 +223,8 @@ export default function Evolucion() {
         <Grid size={{ xs: 12, md: 6 }}>
           <Card className="p-6 h-full flex flex-col gap-4">
             <SectionHeader
-              title="Aciertos por sesión"
-              subtitle="Porcentaje de aciertos de cada sesión, calculado como el promedio de sus ejercicios. Los ejercicios pueden variar de una sesión a otra, así que es un indicador orientativo."
+              title="Evolución del desempeño"
+              subtitle="Porcentaje de aciertos en cada sesión, calculado a partir del promedio de sus ejercicios. Como los ejercicios pueden variar entre sesiones, la evolución es orientativa."
             />
             {sesiones.length === 0 ? (
               <Typography variant="body2" color="text.secondary">
@@ -239,8 +239,8 @@ export default function Evolucion() {
         <Grid size={{ xs: 12, md: 6 }}>
           <Card className="p-6 h-full flex flex-col gap-4">
             <SectionHeader
-              title="Dónde más cuesta"
-              subtitle="Los ejercicios con menor porcentaje de aciertos en el período, para saber qué mirar primero. Se muestra cuántas veces se hizo cada uno."
+              title="Ejercicios con mayor dificultad"
+              subtitle="Ejercicios con menor porcentaje de aciertos durante el período. Permite identificar cuáles necesitan mayor atención. Se indica también cuántas veces se realizó cada ejercicio."
             />
             {sesiones.length === 0 ? (
               <Typography variant="body2" color="text.secondary">
@@ -254,8 +254,8 @@ export default function Evolucion() {
       </Grid>
 
       <Alert severity="info">
-        La evolución se basa en resultados cuantitativos registradas durante las sesiones. Son
-        indicadores de los ejercicios realizados.
+            La evolución se basa en los resultados cuantitativos registrados durante las sesiones,
+            que funcionan como indicadores del desempeño en los ejercicios realizados.
       </Alert>
     </>
   );

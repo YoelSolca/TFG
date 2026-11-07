@@ -25,6 +25,7 @@ type Campo =
   | "apellido"
   | "documento"
   | "telefono"
+  | "direccion"
   | "genero"
   | "fechaNacimiento"
   | "correoElectronico"
@@ -36,6 +37,7 @@ const aFormulario = (p: PerfilPsicopedagogo) => ({
   apellido: p.apellido,
   documento: p.documento,
   telefono: p.telefono,
+  direccion: p.direccion,
   genero: p.genero ?? "",
   fechaNacimiento: p.fechaNacimiento ?? "",
   correoElectronico: p.correoElectronico,
@@ -51,6 +53,7 @@ export default function Perfil() {
       apellido: "",
       documento: "",
       telefono: "",
+      direccion: "",
       genero: "",
       fechaNacimiento: "",
       correoElectronico: "",
@@ -82,7 +85,7 @@ export default function Perfil() {
     limpiarAvisos(k);
   };
   const field = (k: keyof typeof form) => ({
-    value: form[k],
+    value: form[k], 
     onChange: set(k),
     error: Boolean(errors[k]),
     helperText: errors[k],
@@ -103,6 +106,7 @@ export default function Perfil() {
     if (errDocumento) er.documento = errDocumento;
     const errTelefono = validarTelefono(form.telefono);
     if (errTelefono) er.telefono = errTelefono;
+    if (!form.direccion.trim()) er.direccion = "Requerido";
     if (!form.genero) er.genero = "Requerido";
     if (!form.fechaNacimiento) er.fechaNacimiento = "Requerido";
     if (!isEmail(correo)) er.correoElectronico = "Correo electrónico inválido";
@@ -136,6 +140,7 @@ export default function Perfil() {
         apellido: form.apellido.trim(),
         documento: form.documento.trim(),
         telefono: form.telefono.trim(),
+        direccion: form.direccion.trim(),
         genero: form.genero,
         fechaNacimiento: form.fechaNacimiento,
         correoElectronico: correo,
@@ -235,6 +240,9 @@ export default function Perfil() {
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <TextField label="Teléfono" {...field("telefono")} />
+          </Grid>
+          <Grid size={12}>
+            <TextField label="Dirección" slotProps={{ htmlInput: { maxLength: 100 } }} {...field("direccion")} />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <TextField select label="Género" {...field("genero")}>

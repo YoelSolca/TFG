@@ -27,7 +27,7 @@ import { validarDocumento } from "../../utils/Validaciones";
 // ───────────── Parte A: formulario, validaciones y guardado ─────────────
 
 // Largos máximos: son los mismos que valida el servidor y los que tiene la base.
-const LIMITES = { nombre: 100, apellido: 100, documento: 20, direccion: 50, objetivo: 500, observaciones: 1000 };
+const LIMITES = { nombre: 100, apellido: 100, documento: 20, objetivo: 500, observaciones: 1000 };
 
 interface Formulario {
   nombre: string;
@@ -35,7 +35,6 @@ interface Formulario {
   documento: string;
   genero: string; // "M", "F" u "O"
   fechaNacimiento: Dayjs | null;
-  direccion: string;
   objetivo: string;
   observaciones: string;
   tiposDificultadIds: number[];
@@ -47,7 +46,6 @@ const VACIO: Formulario = {
   documento: "",
   genero: "",
   fechaNacimiento: null,
-  direccion: "",
   objetivo: "",
   observaciones: "",
   tiposDificultadIds: [],
@@ -65,7 +63,6 @@ function validar(f: Formulario): Errores {
   if (!f.genero) errores.genero = "Requerido";
   if (!f.fechaNacimiento?.isValid()) errores.fechaNacimiento = "Requerido";
   else if (f.fechaNacimiento.isAfter(dayjs(), "day")) errores.fechaNacimiento = "La fecha no puede ser futura";
-  if (!f.direccion.trim()) errores.direccion = "Requerido";
   if (f.tiposDificultadIds.length === 0) errores.tiposDificultadIds = "Elegí al menos un tipo de dificultad";
   return errores;
 }
@@ -111,7 +108,7 @@ export default function NuevoPaciente() {
   // ───────────── Parte B: lo que comparten los campos de texto ─────────────
 
   // Props de un campo de texto: su valor, el cambio, el error y el largo máximo.
-  const campo = (nombre: "nombre" | "apellido" | "documento" | "direccion") => ({
+  const campo = (nombre: "nombre" | "apellido" | "documento") => ({
     fullWidth: true,
     value: form[nombre],
     onChange: (e: ChangeEvent<HTMLInputElement>) => cambiar(nombre, e.target.value),
@@ -135,7 +132,6 @@ export default function NuevoPaciente() {
         documento: form.documento.trim(),
         genero: form.genero,
         fechaNacimiento: form.fechaNacimiento!.format("YYYY-MM-DD"),
-        direccion: form.direccion.trim(),
         objetivo: form.objetivo.trim() || null,
         observaciones: form.observaciones.trim() || null,
         tiposDificultadIds: form.tiposDificultadIds,
@@ -229,9 +225,6 @@ export default function NuevoPaciente() {
                     },
                   }}
                 />
-              </Grid>
-              <Grid size={12}>
-                <TextField label="Dirección" {...campo("direccion")} />
               </Grid>
             </Grid>
           </Grid>

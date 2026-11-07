@@ -1,6 +1,7 @@
 using Backend.Application.Common;
 using Backend.Application.DTO;
 using Backend.Application.Interfaces;
+using Backend.Domain.Common;
 using Backend.Domain.Entities;
 using Backend.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -57,7 +58,7 @@ namespace Backend.Application.Services
         {
             var atencion = await pacienteRepository.GetAtencionAsync(sesion.PacienteId, usuarioActual.UserId, ct);
 
-            if (atencion is null || atencion.FechaFin is not null)
+            if (atencion is null || !atencion.EstaActiva)
             {
                 return Result<SesionDto>.Failure(
                     $"No atendés actualmente al paciente {sesion.PacienteId}.",
@@ -80,14 +81,8 @@ namespace Backend.Application.Services
                     $"Ejercicio(s) no encontrado(s): {string.Join(", ", faltantes)}", ErrorCodes.NotFound);
             }
 
-            var newSesion = new Sesion
-            {
-                PacienteId = sesion.PacienteId,
-                PsicopedagogoId = usuarioActual.UserId,
-                Fecha = DateTime.Now,
-                // El Orden es la posición en la lista, empezando en 1: es el orden en que se van a hacer.
-                SesionEjercicios = ejercicioIds.Select((id, i) => new SesionEjercicio { EjercicioId = id, Orden = i + 1 }).ToList()
-            };
+            // La sesión pone el orden de los ejercicios: la posición en la lista, empezando en 1.
+            var newSesion = new Sesion(usuarioActual.UserId, sesion.PacienteId, DateTime.Now, ejercicioIds);
 
             await sesionRepository.AddAsync(newSesion, ct);
 
@@ -105,7 +100,7 @@ namespace Backend.Application.Services
                 return Result<SesionDto>.Failure($"La sesión con ID {id} no fue encontrada.", ErrorCodes.NotFound);
             }
 
-            if (existente.Estado != EstadoSesion.Planificada || existente.SesionEjercicios.Any(se => se.Resultado is not null))
+            if (!existente.PuedeModificarse)
             {
                 return Result<SesionDto>.Failure(
                     "Solo se pueden modificar los ejercicios de una sesión planificada que todavía no tiene resultados.",
@@ -136,12 +131,13 @@ namespace Backend.Application.Services
         }
 
         public Task<Result<SesionDto>> IniciarAsync(int id, CancellationToken ct = default)
-            => CambiarEstadoAsync(id, EstadoSesion.Planificada, EstadoSesion.EnCurso, ct);
+            => CambiarEstadoAsync(id, sesion => sesion.Iniciar(DateTime.Now), ct);
 
         public Task<Result<SesionDto>> FinalizarAsync(int id, CancellationToken ct = default)
-            => CambiarEstadoAsync(id, EstadoSesion.EnCurso, EstadoSesion.Finalizada, ct);
+            => CambiarEstadoAsync(id, sesion => sesion.Finalizar(), ct);
 
-        private async Task<Result<SesionDto>> CambiarEstadoAsync(int id, EstadoSesion desde, EstadoSesion hasta, CancellationToken ct)
+        // Busca la sesión del profesional y le pide a la entidad que haga el cambio: las reglas están en Sesion.
+        private async Task<Result<SesionDto>> CambiarEstadoAsync(int id, Func<Sesion, ResultadoDominio> cambio, CancellationToken ct)
         {
             var sesion = await sesionRepository.GetForUpdateAsync(id, usuarioActual.UserId, ct);
             if (sesion is null)
@@ -149,23 +145,16 @@ namespace Backend.Application.Services
                 return Result<SesionDto>.Failure($"La sesión con ID {id} no fue encontrada.", ErrorCodes.NotFound);
             }
 
-            if (sesion.Estado != desde)
+            var desde = sesion.Estado;
+            var resultado = cambio(sesion);
+            if (!resultado.EsExitoso)
             {
-                return Result<SesionDto>.Failure(
-                    $"La sesión está {sesion.Estado}: solo se puede pasar a {hasta} desde {desde}.",
-                    ErrorCodes.ValidationError);
-            }
-
-            sesion.Estado = hasta;
-            if (hasta == EstadoSesion.EnCurso)
-            {
-                // La fecha de una sesión es cuándo se hizo, no cuándo se planificó.
-                sesion.Fecha = DateTime.Now;
+                return Result<SesionDto>.Failure(resultado.Error!, ErrorCodes.ValidationError);
             }
 
             await sesionRepository.SaveChangesAsync(ct);
 
-            logger.LogInformation("Sesion {Id}: {Desde} -> {Hasta}", id, desde, hasta);
+            logger.LogInformation("Sesion {Id}: {Desde} -> {Hasta}", id, desde, sesion.Estado);
             return Result<SesionDto>.Success(SesionDto.FromEntity(sesion));
         }
 

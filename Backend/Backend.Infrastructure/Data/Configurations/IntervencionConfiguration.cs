@@ -13,6 +13,8 @@ namespace Backend.Infrastructure.Data.Configurations
             builder.HasKey(i => i.Id);
             builder.Property(i => i.objetivo).HasMaxLength(500);
             builder.Property(i => i.observaciones).HasMaxLength(1000);
+
+            builder.Navigation(i => i.TiposDificultad).UsePropertyAccessMode(PropertyAccessMode.Field);
         }
     }
 }

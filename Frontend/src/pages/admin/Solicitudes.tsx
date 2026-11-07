@@ -158,6 +158,9 @@ function DetailDialog({
                 <KeyValue label="Teléfono" value={target.telefono || "-"} />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
+                <KeyValue label="Dirección" value={target.direccion || "-"} />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <KeyValue label="Género" value={GENEROS[target.genero ?? ""] ?? "-"} />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>

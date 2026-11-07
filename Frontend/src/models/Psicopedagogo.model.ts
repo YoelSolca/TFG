@@ -8,6 +8,7 @@ export interface CreatePsicopedagogoRequest {
   nombre: string;
   apellido: string;
   telefono: string;
+  direccion: string;
   documento: string;
   matricula: string;
   genero: string;
@@ -27,6 +28,7 @@ export interface PsicopedagogoListItem {
   // Para verificar la matrícula y decidir sobre la cuenta (los fechas llegan como texto ISO).
   documento: string;
   telefono: string;
+  direccion: string;
   genero: string | null;
   fechaNacimiento: string | null;
   fechaAprobacion: string | null;
@@ -46,6 +48,7 @@ export interface PerfilPsicopedagogo {
   apellido: string;
   documento: string;
   telefono: string;
+  direccion: string;
   genero: string | null;
   fechaNacimiento: string | null;
   correoElectronico: string;
@@ -59,6 +62,7 @@ export interface UpdatePerfilRequest {
   apellido: string;
   documento: string;
   telefono: string;
+  direccion: string;
   genero: string;
   fechaNacimiento: string;
   correoElectronico: string;

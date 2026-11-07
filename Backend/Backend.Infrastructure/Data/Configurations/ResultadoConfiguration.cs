@@ -13,6 +13,8 @@ namespace Backend.Infrastructure.Data.Configurations
             builder.HasKey(r => new { r.SesionId, r.EjercicioId });
             builder.Property(r => r.Observaciones).HasMaxLength(500);
 
+            builder.Navigation(r => r.ResultadoMetricas).UsePropertyAccessMode(PropertyAccessMode.Field);
+
             // Restrict: no perder el resultado de un ejercicio en silencio si algún día se borra el vínculo.
             builder.HasOne(r => r.SesionEjercicio)
                 .WithOne(se => se.Resultado)

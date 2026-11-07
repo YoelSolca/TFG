@@ -34,7 +34,6 @@ export interface CrearPacienteRequest {
   documento: string;
   genero: string;
   fechaNacimiento: string;
-  direccion: string;
   objetivo: string | null;
   observaciones: string | null;
   tiposDificultadIds: number[];
@@ -42,7 +41,6 @@ export interface CrearPacienteRequest {
 
 export interface PacienteCreado {
   personaId: number;
-  direccion: string;
   fechaAlta: string;
 }
 
