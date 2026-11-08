@@ -13,11 +13,20 @@ namespace Backend.Infrastructure.Data
     {
         private const string DocumentoPsicopedagogo = "30111222";
         private const string DocumentoAdministrador = "28999000";
-        private const string Obs = "Se observa buena concentración en la primera parte. En la segunda aumentan los errores por distracción. Se recomienda continuar con actividades visuales.";
+        // Observaciones de ejemplo: varias y distintas, para que el Historial y el informe no muestren siempre el mismo texto.
+        private static readonly string[] Observaciones =
+        [
+            "Se observa buena concentración en la primera parte. En la segunda aumentan los errores por distracción.",
+            "Resolvió con tranquilidad y pidió ayuda solo una vez. Se la nota más segura que en la sesión anterior.",
+            "Le costó empezar, pero después de los primeros intentos mantuvo un buen ritmo hasta el final.",
+            "Se frustró con los primeros errores; con un breve aliento retomó la actividad y la terminó sola.",
+            "Trabajó con atención sostenida. Se recomienda continuar con actividades visuales.",
+            "Cometió errores por apuro más que por no saber: conviene pedirle que mire con calma antes de elegir.",
+        ];
 
         // Ids del catálogo sembrado por las migraciones.
         private const int ImagenIgual = 1, Memorama = 4, ConectarPalabras = 5, ComprensionTexto = 6,
-                          Dictado = 7, SumasRestas = 8, SeriesNumericas = 9, DesafioNumeros = 10;
+                          Dictado = 7, SumasRestas = 8, SeriesNumericas = 9;
         private const int DifAtencion = 1, DifLectoescritura = 2, DifCalculo = 3, DifMemoria = 4;
         private const int Movimientos = 1;
 
@@ -49,7 +58,12 @@ namespace Backend.Infrastructure.Data
                 .ToListAsync(ct);
             if (sesiones.Count == 0) return;
 
-            foreach (var sesion in sesiones) sesion.Estado = EstadoSesion.Finalizada;
+            // Pasan por los dos pasos (iniciar y finalizar); la fecha de inicio es la que ya tenían, para no moverlas.
+            foreach (var sesion in sesiones)
+            {
+                sesion.Iniciar(sesion.Fecha);
+                sesion.Finalizar();
+            }
 
             await context.SaveChangesAsync(ct);
             logger.LogInformation("Sesiones de desarrollo marcadas como finalizadas: {Cantidad}.", sesiones.Count);
@@ -91,9 +105,11 @@ namespace Backend.Infrastructure.Data
                 .ToListAsync(ct);
             foreach (var informe in existentes)
             {
-                if (informe.Resumen == "") informe.Resumen = ResumenInformeInicial;
-                if (ContenidoPorResumen.TryGetValue(informe.Resumen, out var plantilla))
-                    informe.Contenido = string.Format(plantilla, informe.Paciente.Persona.Nombre);
+                var resumen = informe.Resumen == "" ? ResumenInformeInicial : informe.Resumen;
+                var contenido = ContenidoPorResumen.TryGetValue(resumen, out var plantilla)
+                    ? string.Format(plantilla, informe.Paciente.Persona.Nombre)
+                    : informe.Contenido;
+                informe.ReemplazarTextos(resumen, contenido);
             }
             await context.SaveChangesAsync(ct);
 
@@ -120,16 +136,9 @@ namespace Backend.Infrastructure.Data
             {
                 if (!pacientes.TryGetValue(documento, out var paciente)) continue;
 
-                context.Informe.Add(new Informe
-                {
-                    PacienteId = paciente.PersonaId,
-                    PsicopedagogoId = psicopedagogoId.Value,
-                    FechaGeneracion = ahora.AddDays(-diasAtras),
-                    PeriodoDesde = ahora.AddDays(-desde),
-                    PeriodoHasta = ahora.AddDays(-hasta),
-                    Resumen = resumen,
-                    Contenido = string.Format(ContenidoPorResumen[resumen], paciente.Nombre)
-                });
+                context.Informe.Add(new Informe(
+                    paciente.PersonaId, psicopedagogoId.Value, ahora.AddDays(-desde), ahora.AddDays(-hasta),
+                    resumen, string.Format(ContenidoPorResumen[resumen], paciente.Nombre), ahora.AddDays(-diasAtras)));
             }
 
             await context.SaveChangesAsync(ct);
@@ -142,21 +151,11 @@ namespace Backend.Infrastructure.Data
 
             var ahora = DateTime.Now;
 
-            var admin = new Administrador
-            {
-                Persona = NuevaPersona("Martín", "Ruiz", DocumentoAdministrador, "M", new DateOnly(1980, 9, 2))
-            };
-            admin.Persona.Usuario = new Usuario
-            {
-                CorreoElectronico = "admin@demo.com",
-                Contrasenia = hasher.Hash("Admin1234!"),
-                FechaAlta = ahora,
-                Rol = RolUsuario.Administrador,
-                Estado = EstadoCuenta.Aprobado,
-                FechaSolicitud = ahora,
-                AceptoTerminos = true,
-                FechaAceptacionTerminos = ahora
-            };
+            var persona = NuevaPersona("Martín", "Ruiz", DocumentoAdministrador, "M", new DateOnly(1980, 9, 2));
+            persona.AsignarUsuario(new Usuario(
+                "admin@demo.com", hasher.Hash("Admin1234!"), RolUsuario.Administrador, ahora,
+                aceptoTerminos: true, estado: EstadoCuenta.Aprobado));
+            var admin = new Administrador(persona);
 
             context.Administrador.Add(admin);
             await context.SaveChangesAsync(ct);
@@ -169,43 +168,30 @@ namespace Backend.Infrastructure.Data
 
             var ahora = DateTime.Now;
 
-            var psico = new Psicopedagogo
-            {
-                Avatar = "avatar-demo.png",
-                Telefono = "3515551234",
-                Matricula = "MP 1234",
-                Persona = NuevaPersona("Laura", "Gómez", DocumentoPsicopedagogo, "F", new DateOnly(1985, 3, 14))
-            };
-            psico.Persona.Usuario = new Usuario
-            {
-                CorreoElectronico = "psico@demo.com",
-                Contrasenia = hasher.Hash("Demo1234!"),
-                FechaAlta = ahora,
-                Rol = RolUsuario.Psicopedagogo,
-                Estado = EstadoCuenta.Aprobado,
-                FechaSolicitud = ahora,
-                AceptoTerminos = true,
-                FechaAceptacionTerminos = ahora
-            };
+            var persona = NuevaPersona("Laura", "Gómez", DocumentoPsicopedagogo, "F", new DateOnly(1985, 3, 14));
+            persona.AsignarUsuario(new Usuario(
+                "psico@demo.com", hasher.Hash("Demo1234!"), RolUsuario.Psicopedagogo, ahora,
+                aceptoTerminos: true, estado: EstadoCuenta.Aprobado));
+            var psico = new Psicopedagogo(persona, "3515551234", "Av. Colón 559", "MP 1234", "avatar-demo.png");
 
-            var juan = NuevoPaciente("Juan", "Perez", "56058870", "M", new DateOnly(2018, 5, 12), "Av. Colón 559", ahora);
-            var melina = NuevoPaciente("Melina", "Romero", "65221087", "F", new DateOnly(2019, 8, 3), "Bv. San Juan 1020", ahora);
-            var cristian = NuevoPaciente("Cristian", "Sosa", "54576522", "M", new DateOnly(2018, 2, 20), "Obispo Trejo 340", ahora);
+            var juan = NuevoPaciente("Juan", "Perez", "56058870", "M", new DateOnly(2018, 5, 12), ahora);
+            var melina = NuevoPaciente("Melina", "Romero", "65221087", "F", new DateOnly(2019, 8, 3), ahora);
+            var cristian = NuevoPaciente("Cristian", "Sosa", "54576522", "M", new DateOnly(2018, 2, 20), ahora);
 
-            psico.PsicopedagogoPacientes.Add(Vinculo(juan, ahora.AddDays(-30), "Mejorar la lectura comprensiva.",
+            Vinculo(psico, juan, ahora.AddDays(-30), "Mejorar la lectura comprensiva.",
                 "Buena disposición. Se distrae con estímulos auditivos.", [DifAtencion],
                 NuevaSesion(ahora.AddDays(-21), EjercicioResuelto(ImagenIgual, 8, 2, 75, 10), EjercicioResuelto(Memorama, 15, 4, 122, 19)),
-                NuevaSesion(ahora.AddDays(-14), EjercicioResuelto(DesafioNumeros, 9, 4, 101, 13)),
-                NuevaSesion(ahora.AddDays(-7), EjercicioResuelto(ImagenIgual, 10, 1, 68, 11), EjercicioResuelto(Memorama, 17, 3, 110, 21))));
+                NuevaSesion(ahora.AddDays(-14), EjercicioResuelto(SeriesNumericas, 9, 4, 101, 0)),
+                NuevaSesion(ahora.AddDays(-7), EjercicioResuelto(ImagenIgual, 10, 1, 68, 11), EjercicioResuelto(Memorama, 17, 3, 110, 21)));
 
-            psico.PsicopedagogoPacientes.Add(Vinculo(melina, ahora.AddDays(-12), "Mejorar la lectoescritura.",
+            Vinculo(psico, melina, ahora.AddDays(-12), "Mejorar la lectoescritura.",
                 "Lee con apoyo. Cuesta la escritura de palabras largas.", [DifLectoescritura],
                 NuevaSesion(ahora.AddDays(-10), EjercicioResuelto(ComprensionTexto, 6, 3, 180, 0), EjercicioResuelto(ConectarPalabras, 8, 2, 95, 9)),
-                NuevaSesion(ahora.AddDays(-3), EjercicioResuelto(Dictado, 7, 3, 140, 0))));
+                NuevaSesion(ahora.AddDays(-3), EjercicioResuelto(Dictado, 7, 3, 140, 0)));
 
-            psico.PsicopedagogoPacientes.Add(Vinculo(cristian, ahora.AddDays(-6), "Afianzar el cálculo mental.",
+            Vinculo(psico, cristian, ahora.AddDays(-6), "Afianzar el cálculo mental.",
                 "Se frustra ante errores. Responde bien al refuerzo positivo.", [DifCalculo, DifMemoria],
-                NuevaSesion(ahora.AddDays(-5), EjercicioResuelto(SumasRestas, 12, 5, 130, 17), EjercicioResuelto(SeriesNumericas, 9, 3, 115, 12))));
+                NuevaSesion(ahora.AddDays(-5), EjercicioResuelto(SumasRestas, 12, 5, 130, 17), EjercicioResuelto(SeriesNumericas, 9, 3, 115, 12)));
 
             context.Psicopedagogo.Add(psico);
 
@@ -214,62 +200,40 @@ namespace Backend.Infrastructure.Data
         }
 
         private static Persona NuevaPersona(string nombre, string apellido, string documento, string genero, DateOnly nacimiento)
-            => new()
-            {
-                Nombre = nombre,
-                Apellido = apellido,
-                Documento = documento,
-                Genero = genero,
-                FechaNacimiento = nacimiento
-            };
+            => new(nombre, apellido, documento, genero, nacimiento);
 
-        private static Paciente NuevoPaciente(string nombre, string apellido, string documento, string genero, DateOnly nacimiento, string direccion, DateTime fechaAlta)
-            => new()
-            {
-                Direccion = direccion,
-                FechaAlta = fechaAlta,
-                Persona = NuevaPersona(nombre, apellido, documento, genero, nacimiento)
-            };
+        private static Paciente NuevoPaciente(string nombre, string apellido, string documento, string genero, DateOnly nacimiento, DateTime fechaAlta)
+            => new(NuevaPersona(nombre, apellido, documento, genero, nacimiento), fechaAlta);
 
-        private static PsicopedagogoPaciente Vinculo(Paciente paciente, DateTime fechaInicio, string objetivo, string observaciones, int[] dificultades, params Sesion[] sesiones)
-            => new()
-            {
-                Paciente = paciente,
-                FechaInicio = fechaInicio,
-                Intervencion = new Intervencion
-                {
-                    objetivo = objetivo,
-                    observaciones = observaciones,
-                    TiposDificultad = dificultades.Select(id => new IntervencionTipoDificultad { TipoDificultadId = id }).ToList()
-                },
-                Sesiones = sesiones.ToList()
-            };
-
-        private static Sesion NuevaSesion(DateTime fecha, params SesionEjercicio[] ejercicios)
+        private static void Vinculo(Psicopedagogo psicopedagogo, Paciente paciente, DateTime fechaInicio, string objetivo, string observaciones, int[] dificultades, params Sesion[] sesiones)
         {
-            // Cada ejercicio se registra unos minutos después del anterior.
-            for (var i = 0; i < ejercicios.Length; i++)
-            {
-                ejercicios[i].Resultado!.FechaRegistro = fecha.AddMinutes(10 * (i + 1));
-            }
-
-            return new Sesion { Fecha = fecha, SesionEjercicios = ejercicios.ToList() };
+            var atencion = psicopedagogo.IniciarAtencion(paciente, new Intervencion(objetivo, observaciones, dificultades), fechaInicio);
+            foreach (var sesion in sesiones) atencion.AgregarSesion(sesion);
         }
 
-        private static SesionEjercicio EjercicioResuelto(int ejercicioId, int aciertos, int errores, int segundos, int movimientos)
-            => new()
+        private static Sesion NuevaSesion(DateTime fecha, params Resuelto[] ejercicios)
+        {
+            var sesion = new Sesion(0, 0, fecha, ejercicios.Select(e => e.EjercicioId));
+
+            // Cada ejercicio se registra unos minutos después del anterior.
+            foreach (var (se, i) in sesion.SesionEjercicios.Select((se, i) => (se, i)))
             {
-                EjercicioId = ejercicioId,
-                Resultado = new Resultado
-                {
-                    Aciertos = aciertos,
-                    Errores = errores,
-                    TiempoSegundos = segundos,
-                    Observaciones = Obs,
-                    ResultadoMetricas = movimientos > 0
-                        ? new List<ResultadoMetrica> { new() { MetricaId = Movimientos, Valor = movimientos } }
-                        : new List<ResultadoMetrica>()
-                }
-            };
+                var datos = ejercicios[i];
+                se.RegistrarResultado(
+                    datos.Aciertos, datos.Errores, datos.Segundos,
+                    // Se elige según los números del ejercicio: es siempre la misma para los mismos datos y varía entre ejercicios.
+                    Observaciones[(datos.EjercicioId + datos.Aciertos + datos.Errores + datos.Segundos) % Observaciones.Length],
+                    fecha.AddMinutes(10 * (i + 1)),
+                    datos.Movimientos > 0 ? [(Movimientos, (decimal)datos.Movimientos)] : []);
+            }
+
+            return sesion;
+        }
+
+        private static Resuelto EjercicioResuelto(int ejercicioId, int aciertos, int errores, int segundos, int movimientos)
+            => new(ejercicioId, aciertos, errores, segundos, movimientos);
+
+        // Lo que se registró de un ejercicio de ejemplo.
+        private readonly record struct Resuelto(int EjercicioId, int Aciertos, int Errores, int Segundos, int Movimientos);
     }
 }

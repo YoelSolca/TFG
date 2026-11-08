@@ -2,8 +2,14 @@ namespace Backend.Domain.Entities
 {
     public class Administrador
     {
-        public int PersonaId { get; set; }
-        public Persona Persona { get; set; } = null!;
-        public ICollection<HistorialEstadoCuenta> CambiosRealizados { get; set; } = new List<HistorialEstadoCuenta>();
+        private readonly List<HistorialEstadoCuenta> _cambiosRealizados = [];
+
+        private Administrador() { }
+
+        public Administrador(Persona persona) => Persona = persona;
+
+        public int PersonaId { get; private set; }
+        public Persona Persona { get; private set; } = null!;
+        public IReadOnlyCollection<HistorialEstadoCuenta> CambiosRealizados => _cambiosRealizados;
     }
 }

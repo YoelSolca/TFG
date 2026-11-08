@@ -1,18 +1,12 @@
 import { useParams } from "react-router-dom";
-import { obtenerHistorialPaciente } from "../../actions/pacientes.action";
-import {
-  CenteredPagination,
-  DateFilter,
-  ExerciseTypeIcon,
-} from "../../components/common";
+import { useListaPaginada } from "../../hooks/UseListaPaginada";
+import { obtenerHistorialPaciente } from "../../actions/Pacientes.action";
+import { CenteredPagination, DateFilter, ExerciseTypeIcon } from "../../components/Common";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import {
-  HistorialPacienteItem,
-  TipoEjercicio,
-} from "../../Model/paciente.model";
+import { TipoEjercicio } from "../../models/Paciente.model";
 import { Box, Card, Chip, Divider, Stack, Typography } from "@mui/material";
 import dayjs from "dayjs";
-import { filtrarHistorialPacientePorTipoEjercicio } from "../../actions/tipoEjercicio.action";
+import { filtrarHistorialPacientePorTipoEjercicio } from "../../actions/TipoEjercicio.action";
 
 export function TypeFilterChips({
   value,
@@ -26,14 +20,10 @@ export function TypeFilterChips({
   useEffect(() => {
     filtrarHistorialPacientePorTipoEjercicio()
       .then((response) => {
-        console.log("Tipos de ejercicio:", response);
         setTipoEjercicio(response);
       })
       .catch((error) => {
-        console.error(
-          "Error al filtrar historial del paciente por tipo de ejercicio:",
-          error,
-        );
+        console.error("Error al filtrar historial del paciente por tipo de ejercicio:", error);
       });
   }, []);
 
@@ -61,66 +51,39 @@ export function TypeFilterChips({
 
 export default function Historial() {
   const { id } = useParams();
-  const [historial, setHistorial] = useState<HistorialPacienteItem[]>([]);
   const [type, setType] = useState<string | number>("Todas");
-  const [page, setPage] = useState(1); // la página que se está viendo
-  const [totalPages, setTotalPages] = useState(1);
   const [fecha, setFecha] = useState<Date>();
-  useEffect(() => {
-    obtenerHistorialPaciente(
-      id!,
-      type === "Todas" ? undefined : Number(type),
-      fecha,
-      page,
-    )
-      .then((response) => {
-        console.log("Historial del paciente:", response);
-        setHistorial(response.items); // Asignar el primer elemento del historial a la variable de estado
-        setTotalPages(Math.ceil(response.total / response.pageSize)); // Calcula el total de páginas según la cantidad de pacientes y el tamaño de página (10)
-      })
-      .catch((error) => {
-        console.error("Error al obtener historial del paciente:", error);
-      });
-  }, [type, id, page, fecha]); // Se ejecuta cada vez que type o id cambian, y realiza la solicitud para obtener el historial del paciente filtrado según el tipo de ejercicio seleccionado.
+  const {
+    items: historial,
+    page,
+    setPage,
+    totalPages,
+  } = useListaPaginada(
+    (p) => obtenerHistorialPaciente(id!, type === "Todas" ? undefined : Number(type), fecha, p),
+    [id, type, fecha],
+    "Error al obtener historial del paciente:",
+  );
 
   return (
     <>
-      <Stack
-        direction="row"
-        useFlexGap
-        className="gap-4 flex-wrap items-center justify-between"
-      >
+      <Stack direction="row" useFlexGap className="gap-4 flex-wrap items-center justify-between">
         <TypeFilterChips value={type} onChange={setType} />
         <DateFilter date={fecha} onChange={(d) => setFecha(d)} />
       </Stack>
 
       {historial.map((item) => (
         <Card className="p-6 flex flex-col gap-4">
-          <Stack
-            direction="row"
-            useFlexGap
-            className="gap-4 flex-wrap items-center"
-          >
+          <Stack direction="row" useFlexGap className="gap-4 flex-wrap items-center">
             <ExerciseTypeIcon icon={item.tipoEjercicio} size={40} />
             <Box className="flex-1 min-w-50">
               <Typography variant="subtitle1">
                 {item.tipoEjercicio} · {item.ejercicio}
               </Typography>
-              <Typography variant="body2">
-                {dayjs(item.fecha.toString()).format("DD/MM/YYYY")}
-              </Typography>
+              <Typography variant="body2">{dayjs(item.fecha.toString()).format("DD/MM/YYYY")}</Typography>
             </Box>
             <Stack direction="row" useFlexGap className="gap-2 flex-wrap">
-              <Chip
-                size="small"
-                variant="outlined"
-                label={`Aciertos: ${item.aciertos}`}
-              />
-              <Chip
-                size="small"
-                variant="outlined"
-                label={`Errores: ${item.errores}`}
-              />
+              <Chip size="small" variant="outlined" label={`Aciertos: ${item.aciertos}`} />
+              <Chip size="small" variant="outlined" label={`Errores: ${item.errores}`} />
               {item.metricas.map((metrica) => (
                 <Chip
                   size="small"
@@ -128,11 +91,7 @@ export default function Historial() {
                   label={`${metrica.nombre.charAt(0).toUpperCase() + metrica.nombre.slice(1)}: ${metrica.valor} ${metrica.unidad ? metrica.unidad : ""}`}
                 />
               ))}
-              <Chip
-                size="small"
-                variant="outlined"
-                label={`Tiempo: ${item.tiempoSegundos} seg`}
-              />
+              <Chip size="small" variant="outlined" label={`Tiempo: ${item.tiempoSegundos} seg`} />
             </Stack>
           </Stack>
           <Divider />
@@ -147,11 +106,7 @@ export default function Historial() {
           </Box>
         </Card>
       ))}
-      <CenteredPagination
-        page={page}
-        count={totalPages}
-        onChange={(t) => setPage(t)}
-      />
+      <CenteredPagination page={page} count={totalPages} onChange={(t) => setPage(t)} />
     </>
   );
 }

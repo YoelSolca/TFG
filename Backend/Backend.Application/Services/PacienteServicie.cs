@@ -87,9 +87,9 @@ namespace Backend.Application.Services
             }
 
             var documento = request.Documento.Trim();
-            if (documento.Length == 0 || string.IsNullOrWhiteSpace(request.Nombre) || string.IsNullOrWhiteSpace(request.Apellido) || string.IsNullOrWhiteSpace(request.Direccion))
+            if (documento.Length == 0 || string.IsNullOrWhiteSpace(request.Nombre) || string.IsNullOrWhiteSpace(request.Apellido))
             {
-                return Result<RegistroPacienteResult>.Failure("Nombre, apellido, documento y dirección son obligatorios.", ErrorCodes.ValidationError);
+                return Result<RegistroPacienteResult>.Failure("Nombre, apellido y documento son obligatorios.", ErrorCodes.ValidationError);
             }
 
             if (request.FechaNacimiento == default || request.FechaNacimiento > DateOnly.FromDateTime(DateTime.Today))
@@ -111,7 +111,7 @@ namespace Backend.Application.Services
                 var atencion = await repository.GetAtencionAsync(existente.PersonaId, usuarioActual.UserId, ct);
 
                 // El mismo psicopedagogo intenta cargar un paciente que ya atiende: es un intento de duplicado.
-                if (atencion is not null && atencion.FechaFin is null)
+                if (atencion is not null && atencion.EstaActiva)
                 {
                     return Result<RegistroPacienteResult>.Failure($"El paciente con documento {documento} ya está registrado en tu lista de pacientes.", ErrorCodes.Duplicate);
                 }
@@ -128,36 +128,11 @@ namespace Backend.Application.Services
                 return Result<RegistroPacienteResult>.Failure($"El documento {documento} pertenece a otra persona registrada.", ErrorCodes.Duplicate);
             }
 
-            var paciente = new Paciente
-            {
-                Direccion = request.Direccion.Trim(),
-                FechaAlta = DateTime.Now,
-                Persona = new Persona
-                {
-                    Nombre = request.Nombre.Trim(),
-                    Apellido = request.Apellido.Trim(),
-                    Documento = documento,
-                    Genero = request.Genero,
-                    FechaNacimiento = request.FechaNacimiento
-                },
-
-                PsicopedagogoPacientes = new List<PsicopedagogoPaciente>
-                {
-                    new()
-                    {
-                        PsicopedagogoId = usuarioActual.UserId,
-                        FechaInicio = DateTime.Now,
-                        Intervencion = new Intervencion
-                        {
-                            objetivo = request.Objetivo,
-                            observaciones = request.Observaciones,
-                            TiposDificultad = tiposDificultadIds.Select(id => new IntervencionTipoDificultad { TipoDificultadId = id }).ToList()
-                        }
-                    }
-                }
-
-            };
-
+            var ahora = DateTime.Now;
+            var paciente = new Paciente(
+                new Persona(request.Nombre.Trim(), request.Apellido.Trim(), documento, request.Genero, request.FechaNacimiento),
+                ahora);
+            paciente.IniciarAtencion(usuarioActual.UserId, new Intervencion(request.Objetivo, request.Observaciones, tiposDificultadIds), ahora);
 
             await repository.AddPacienteAsync(paciente, ct);
 
@@ -199,7 +174,7 @@ namespace Backend.Application.Services
                 return Result<PacienteDto>.Failure($"El documento {request.Documento} pertenece a otra persona.", ErrorCodes.Duplicate);
             }
 
-            var atencion = paciente.PsicopedagogoPacientes.FirstOrDefault(p => p.PsicopedagogoId == usuarioActual.UserId);
+            var atencion = paciente.AtencionDe(usuarioActual.UserId);
 
             if (atencion is null)
                 return Result<PacienteDto>.Failure("El psicopedagogo no atiende a este paciente", ErrorCodes.NotFound);
@@ -210,26 +185,18 @@ namespace Backend.Application.Services
                 return Result<PacienteDto>.Failure("Algún tipo de dificultad no existe.", ErrorCodes.NotFound);
             }
 
-            // Las dificultades quedan exactamente las pedidas: se sacan las que ya no están y se suman las nuevas.
-            var tiposActuales = atencion.Intervencion.TiposDificultad;
-            foreach (var quitado in tiposActuales.Where(t => !tiposDificultadIds.Contains(t.TipoDificultadId)).ToList())
+            // Las reglas de cada cambio están en las entidades; si alguna falla no se guarda nada.
+            var cambios = new[]
             {
-                tiposActuales.Remove(quitado);
-            }
-            foreach (var id in tiposDificultadIds.Where(id => tiposActuales.All(t => t.TipoDificultadId != id)))
+                paciente.Persona.ActualizarDatos(request.Nombre, request.Apellido, request.Documento, request.Genero, request.FechaNacimiento, DateOnly.FromDateTime(DateTime.Today)),
+                atencion.Intervencion.DefinirDificultades(tiposDificultadIds),
+                atencion.Intervencion.Actualizar(request.Objetivo, request.Observaciones)
+            };
+            var falla = cambios.FirstOrDefault(c => !c.EsExitoso);
+            if (falla is not null)
             {
-                tiposActuales.Add(new IntervencionTipoDificultad { TipoDificultadId = id });
+                return Result<PacienteDto>.Failure(falla.Error!, ErrorCodes.ValidationError);
             }
-
-            paciente.Direccion = request.Direccion;
-            paciente.Persona.Nombre = request.Nombre;
-            paciente.Persona.Apellido = request.Apellido;
-            paciente.Persona.Documento = request.Documento;
-            paciente.Persona.Genero = request.Genero;
-            paciente.Persona.FechaNacimiento = request.FechaNacimiento;
-            atencion.Intervencion.objetivo = request.Objetivo;
-            atencion.Intervencion.observaciones = request.Observaciones;
-
 
             await repository.UpdateAsync(paciente, ct);
             logger.LogInformation("Paciente actualizado: {Id} ({documento})", paciente.PersonaId, paciente.Persona.Documento);
@@ -242,20 +209,10 @@ namespace Backend.Application.Services
         {
             if (atencion is null)
             {
-                await repository.IniciarAtencionAsync(new PsicopedagogoPaciente
-                {
-                    PacienteId = pacienteId,
-                    PsicopedagogoId = psicopedagogoId,
-                    FechaInicio = DateTime.Now,
-                    Intervencion = new Intervencion
-                    {
-                        objetivo = objetivo,
-                        observaciones = observaciones,
-                        TiposDificultad = tiposDificultadIds.Select(id => new IntervencionTipoDificultad { TipoDificultadId = id }).ToList()
-                    }
-                }, ct);
+                await repository.IniciarAtencionAsync(
+                    new PsicopedagogoPaciente(pacienteId, psicopedagogoId, new Intervencion(objetivo, observaciones, tiposDificultadIds), DateTime.Now), ct);
             }
-            else if (atencion.FechaFin is not null)
+            else if (!atencion.EstaActiva)
             {
                 await repository.ReactivarAtencionAsync(pacienteId, psicopedagogoId, ct);
             }

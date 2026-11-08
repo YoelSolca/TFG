@@ -12,6 +12,8 @@ namespace Backend.Infrastructure.Data.Configurations
 
             builder.HasKey(a => a.PersonaId);
 
+            builder.Navigation(a => a.CambiosRealizados).UsePropertyAccessMode(PropertyAccessMode.Field);
+
             builder.HasOne(a => a.Persona)
                    .WithOne(p => p.Administrador)
                    .HasForeignKey<Administrador>(a => a.PersonaId)

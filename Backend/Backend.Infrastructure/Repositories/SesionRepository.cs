@@ -89,19 +89,11 @@ namespace Backend.Infrastructure.Repositories
         {
             // Los que ya no están en la lista se borran explícitamente: sacarlos de la colección no alcanza
             // porque la relación con la sesión es Restrict.
-            var aQuitar = sesion.SesionEjercicios.Where(se => !ejercicioIds.Contains(se.EjercicioId)).ToList();
-            context.SesionEjercicio.RemoveRange(aQuitar);
+            context.SesionEjercicio.RemoveRange(sesion.EjerciciosQueSeQuitan(ejercicioIds));
 
-            for (var i = 0; i < ejercicioIds.Count; i++)
-            {
-                var ejercicioId = ejercicioIds[i];
-                var existente = sesion.SesionEjercicios.FirstOrDefault(se => se.EjercicioId == ejercicioId);
-
-                if (existente is null)
-                    sesion.SesionEjercicios.Add(new SesionEjercicio { SesionId = sesion.Id, EjercicioId = ejercicioId, Orden = i + 1 });
-                else
-                    existente.Orden = i + 1;
-            }
+            // El servicio ya comprobó que se puede modificar; si no, es un error de programación y no un dato inválido.
+            var cambio = sesion.ReemplazarEjercicios(ejercicioIds);
+            if (!cambio.EsExitoso) throw new InvalidOperationException(cambio.Error);
 
             await context.SaveChangesAsync(ct);
         }

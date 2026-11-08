@@ -1,10 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Link as RouterLink,
-  NavLink,
-  Outlet,
-  useLocation,
-} from "react-router-dom";
+import { Link as RouterLink, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   AppBar,
   Avatar,
@@ -35,10 +30,11 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import brainIcon from "../assets/icons/logo.png";
-import HowToRegIcon from '@mui/icons-material/HowToReg';
-import VerifiedUserOutlinedIcon from '@mui/icons-material/VerifiedUserOutlined';
+import HowToRegIcon from "@mui/icons-material/HowToReg";
+import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
 import { ROLES, useAuth } from "../App";
-import { ListPsicopedagogos } from "../actions/psicopedagogo.action";
+import { SOLICITUDES_CAMBIARON } from "../utils/Eventos";
+import { listarPsicopedagogos } from "../actions/Psicopedagogo.action";
 export const DRAWER_WIDTH = 260;
 
 type NavItem = {
@@ -79,25 +75,21 @@ const NAV: NavItem[] = [
     to: "/informes",
     icon: DescriptionIcon,
     // también queda marcado en el detalle de un informe al que se llegó desde esta lista
-    match: (p: string, from?: string) =>
-      p.startsWith("/informes") || (from === "informes" && p.includes("/informes/")),
+    match: (p: string, from?: string) => p.startsWith("/informes") || (from === "informes" && p.includes("/informes/")),
   },
 ];
 
 const ADMIN_NAV: NavItem[] = [
-  { label: 'Solicitudes', to: '/admin', icon: HowToRegIcon, match: (p:string) => p === '/admin', badge: true },
-  { label: 'Profesionales', to: '/admin/profesionales', icon: VerifiedUserOutlinedIcon, match: (p:string) => p.startsWith('/admin/profesionales') },
+  { label: "Solicitudes", to: "/admin", icon: HowToRegIcon, match: (p: string) => p === "/admin", badge: true },
+  {
+    label: "Profesionales",
+    to: "/admin/profesionales",
+    icon: VerifiedUserOutlinedIcon,
+    match: (p: string) => p.startsWith("/admin/profesionales"),
+  },
 ];
 
-function SideNav({
-  mobile,
-  open,
-  onClose,
-}: {
-  mobile?: boolean;
-  open?: boolean;
-  onClose?: () => void;
-}) {
+function SideNav({ mobile, open, onClose }: { mobile?: boolean; open?: boolean; onClose?: () => void }) {
   const { pathname, state } = useLocation();
   const locked = Array.isArray(state?.queue);
   const { user } = useAuth();
@@ -105,12 +97,17 @@ function SideNav({
   const nav = isAdmin ? ADMIN_NAV : NAV;
   const [pending, setPending] = useState(0);
 
-  // Cantidad de solicitudes pendientes para el badge; se refresca al navegar.
+  // Cantidad de solicitudes pendientes para el badge; se refresca al navegar y cuando la pantalla de solicitudes
+  // avisa que aprobó o rechazó a alguien (sin esto el globito quedaba con el número viejo hasta cambiar de pantalla).
   useEffect(() => {
     if (!isAdmin) return;
-    ListPsicopedagogos("", ["Pendiente"], 1, 1)
-      .then((data: { total: number }) => setPending(data.total))
-      .catch(() => setPending(0));
+    const cargar = () =>
+      listarPsicopedagogos("", ["Pendiente"], 1, 1)
+        .then((data: { total: number }) => setPending(data.total))
+        .catch(() => setPending(0));
+    cargar();
+    window.addEventListener(SOLICITUDES_CAMBIARON, cargar);
+    return () => window.removeEventListener(SOLICITUDES_CAMBIARON, cargar);
   }, [isAdmin, pathname]);
 
   return (
@@ -122,15 +119,7 @@ function SideNav({
       sx={{
         width: 260,
         flexShrink: 0,
-        "& .MuiDrawer-paper": {
-          width: 260,
-          bgcolor: "primary.main",
-          color: "white",
-          border: 0,
-          px: 2,
-          pt: 3,
-          pb: 2,
-        },
+        "& .MuiDrawer-paper": { width: 260, bgcolor: "primary.main", color: "white", border: 0, px: 2, pt: 3, pb: 2 },
       }}
     >
       <Stack direction="row" useFlexGap className="items-center pl-3 mb-16">
@@ -169,9 +158,7 @@ function SideNav({
                 primary={label}
                 slotProps={{
                   primary: {
-                    className: selected
-                      ? "text-[15px] font-medium"
-                      : "text-[15px] font-normal",
+                    className: selected ? "text-[15px] font-medium" : "text-[15px] font-normal",
                   },
                 }}
               />
@@ -183,23 +170,16 @@ function SideNav({
 
       <Box className="flex-1" />
       <Divider sx={{ borderColor: "rgba(255,255,255,0.2)" }} />
-      <Stack
-        direction="row"
-        spacing={1.5}
-        className="items-center px-3 pt-4 pb-2"
-      >
-        <Avatar
-          className="text-[16px] font-medium"
-          sx={{ bgcolor: "common.white", color: "primary.main" }}
-        >
-          {"PM"}
+      <Stack direction="row" spacing={1.5} className="items-center px-3 pt-4 pb-2">
+        <Avatar className="text-[16px] font-medium" sx={{ bgcolor: "common.white", color: "primary.main" }}>
+          {iniciales(user?.name)}
         </Avatar>
         <Box>
           <Typography variant="body2" className="font-medium">
             {user?.name}
           </Typography>
           <Typography variant="caption" className="opacity-72">
-            {"Lic. Psicopedagogía"}
+            {isAdmin ? "Administrador" : "Lic. Psicopedagogía"}
           </Typography>
         </Box>
       </Stack>
@@ -207,9 +187,17 @@ function SideNav({
   );
 }
 
+// Las iniciales del avatar salen del nombre de quien inició sesión.
+function iniciales(nombre?: string) {
+  const palabras = (nombre ?? "").trim().split(/\s+/).filter(Boolean);
+  if (palabras.length === 0) return "?";
+  return (palabras.length > 1 ? palabras[0][0] + palabras[1][0] : palabras[0].slice(0, 2)).toUpperCase();
+}
+
 export default function AppLayout() {
   const theme = useTheme();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   // Detecta si la pantalla es de tamaño móvil utilizando el hook useMediaQuery y el tema de Material-UI.
   const mobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -217,6 +205,12 @@ export default function AppLayout() {
   const { pathname, state } = useLocation();
   const locked = Array.isArray(state?.queue);
   useEffect(() => setOpen(false), [pathname]);
+
+  // Cierra la sesión (borra el token del navegador) y va al login sin dejar esta pantalla en el historial.
+  const cerrarSesion = () => {
+    signOut();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <Box className="flex min-h-screen" sx={{ bgcolor: "background.default" }}>
@@ -231,41 +225,25 @@ export default function AppLayout() {
         >
           <Toolbar className="min-h-16 justify-end gap-2">
             {locked ? (
-              <Stack
-                direction="row"
-                spacing={1}
-                className="items-center mr-auto"
-                sx={{ color: "text.secondary" }}
-              >
+              <Stack direction="row" spacing={1} className="items-center mr-auto" sx={{ color: "text.secondary" }}>
                 <LockOutlinedIcon fontSize="small" />
-                <Typography variant="body2">
-                  Sesión en curso — completá los ejercicios para continuar
-                </Typography>
+                <Typography variant="body2">Sesión en curso — completá los ejercicios para continuar</Typography>
               </Stack>
             ) : (
               <>
                 {mobile && (
-                  <IconButton
-                    edge="start"
-                    aria-label="Abrir menú"
-                    onClick={() => setOpen(true)}
-                    className="mr-auto"
-                  >
+                  <IconButton edge="start" aria-label="Abrir menú" onClick={() => setOpen(true)} className="mr-auto">
                     <MenuIcon />
                   </IconButton>
                 )}
                 {/* El perfil es de psicopedagogos: el administrador no tiene esos datos. */}
                 {user?.role !== ROLES.ADMIN && (
-                  <Button
-                    startIcon={<PersonIcon />}
-                    component={RouterLink}
-                    to="/perfil"
-                  >
+                  <Button startIcon={<PersonIcon />} component={RouterLink} to="/perfil">
                     Perfil
                   </Button>
                 )}
                 <Tooltip title="Cerrar sesión">
-                  <IconButton aria-label="Cerrar sesión">
+                  <IconButton aria-label="Cerrar sesión" onClick={cerrarSesion}>
                     <LogoutIcon />
                   </IconButton>
                 </Tooltip>
@@ -273,10 +251,7 @@ export default function AppLayout() {
             )}
           </Toolbar>
         </AppBar>
-        <Box
-          component="main"
-          className="flex flex-col gap-6 px-4 md:px-10 pt-6 md:pt-8 pb-10"
-        >
+        <Box component="main" className="flex flex-col gap-6 px-4 md:px-10 pt-6 md:pt-8 pb-10">
           <Outlet />
         </Box>
       </Box>

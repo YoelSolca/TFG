@@ -46,6 +46,9 @@ namespace Backend.Infrastructure.Data.Configurations
             builder.HasIndex(u => u.CorreoElectronico).IsUnique();
             builder.HasIndex(u => u.Estado);
 
+            // El historial es de solo lectura hacia afuera: Entity Framework lo carga y lo guarda por el campo privado.
+            builder.Navigation(u => u.Historial).UsePropertyAccessMode(PropertyAccessMode.Field);
+
             builder.HasOne(u => u.Persona)
                   .WithOne(p => p.Usuario)
                   .HasForeignKey<Usuario>(u => u.PersonaId)

@@ -72,16 +72,7 @@ namespace Backend.Application.Services
             InformeGenerado generado = await generador.GenerarAsync(datos, ct);
     
 
-            var informe = new Informe
-            {
-                PacienteId = pacienteId,
-                PsicopedagogoId = usuarioActual.UserId,
-                FechaGeneracion = DateTime.Now,
-                PeriodoDesde = desde,
-                PeriodoHasta = hasta,
-                Resumen = ResumenParaGuardar(generado),
-                Contenido = generado.Contenido
-            };
+            var informe = new Informe(pacienteId, usuarioActual.UserId, desde, hasta, ResumenParaGuardar(generado), generado.Contenido, DateTime.Now);
 
             var creado = await repository.AddAsync(informe, ct);
             return Result<InformeDto>.Success(InformeDto.FromEntity(creado));

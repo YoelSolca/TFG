@@ -9,6 +9,7 @@ namespace Backend.Infrastructure.Data.Configurations
         public void Configure(EntityTypeBuilder<Metrica> builder)
         {
             builder.ToTable("Metrica");
+            builder.Navigation(x => x.ResultadoMetricas).UsePropertyAccessMode(PropertyAccessMode.Field);
 
             builder.HasKey(m => m.Id);
             builder.Property(m => m.Nombre).IsRequired().HasMaxLength(50);
@@ -17,11 +18,10 @@ namespace Backend.Infrastructure.Data.Configurations
             builder.Property(m => m.TipoAgregacion).HasConversion<string>().HasMaxLength(20);
 
             builder.HasIndex(m => m.Nombre).IsUnique();
-
+    
             builder.HasData(
-                new Metrica { Id = 1, Nombre = "movimientos", Descripcion = "Cantidad de movimientos realizados", TipoAgregacion = TipoAgregacion.Suma },
-                new Metrica { Id = 2, Nombre = "omisiones", Descripcion = "Estímulos omitidos", TipoAgregacion = TipoAgregacion.Suma },
-                new Metrica { Id = 3, Nombre = "nivelAlcanzado", Descripcion = "Nivel máximo alcanzado", TipoAgregacion = TipoAgregacion.Maximo });
+                new { Id = 1, Nombre = "movimientos", Descripcion = "Cantidad de movimientos realizados", TipoAgregacion = TipoAgregacion.Suma },
+                new { Id = 4, Nombre = "pistas", Descripcion = "Pistas usadas durante el ejercicio", TipoAgregacion = TipoAgregacion.Suma });
         }
     }
 }

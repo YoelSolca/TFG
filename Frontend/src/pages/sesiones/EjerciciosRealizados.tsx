@@ -1,33 +1,35 @@
 import { useEffect, useState } from "react";
+import { useDebounce } from "../../hooks/UseDebounce";
+import { useListaPaginada } from "../../hooks/UseListaPaginada";
 import { useNavigate } from "react-router-dom";
-import { Card, Chip, InputAdornment, MenuItem, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from "@mui/material";
+import {
+  Card,
+  Chip,
+  InputAdornment,
+  MenuItem,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography,
+} from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import { formatearCuando } from "../../utils/tiempo";
-import { DateFilter, ExerciseTypeIcon, PageHeader, PersonAvatar, TablePager } from "../../components/common";
-import { obtenerEjerciciosRealizados } from "../../actions/sesion.action";
-import { filtrarHistorialPacientePorTipoEjercicio } from "../../actions/tipoEjercicio.action";
-import { TipoEjercicio } from "../../Model/paciente.model";
-import { EjercicioRealizadoItem } from "../../Model/sesion.model";
-
-function NameCell({ initials, name, colorId }: { initials: string; name: string; colorId?: number }) {
-  return (
-    <Stack direction="row" spacing={1.5} className="items-center">
-      <PersonAvatar initials={initials} size={32} colorId={colorId} />
-      <Typography variant="body2" className="font-medium">{name}</Typography>
-    </Stack>
-  );
-}
+import { formatearCuando } from "../../utils/Tiempo";
+import { DateFilter, ExerciseTypeIcon, NameCell, PageHeader, TablePager } from "../../components/Common";
+import { obtenerEjerciciosRealizados } from "../../actions/Sesion.action";
+import { filtrarHistorialPacientePorTipoEjercicio } from "../../actions/TipoEjercicio.action";
+import { TipoEjercicio } from "../../models/Paciente.model";
 
 export default function EjerciciosRealizados() {
   const navigate = useNavigate();
-  const [items, setItems] = useState<EjercicioRealizadoItem[]>([]);
   const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [fecha, setFecha] = useState<Date>();
   const [tipos, setTipos] = useState<TipoEjercicio[]>([]);
   const [tipoId, setTipoId] = useState<number | "">("");
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     filtrarHistorialPacientePorTipoEjercicio()
@@ -35,24 +37,13 @@ export default function EjerciciosRealizados() {
       .catch((error) => console.error("Error al obtener los tipos de ejercicio:", error));
   }, []);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(timer);
-  }, [search]);
+  const debouncedSearch = useDebounce(search);
 
-  // al cambiar un filtro se vuelve a la primera página
-  useEffect(() => {
-    setPage(1);
-  }, [debouncedSearch, tipoId, fecha]);
-
-  useEffect(() => {
-    obtenerEjerciciosRealizados(page, debouncedSearch, tipoId === "" ? undefined : tipoId, fecha)
-      .then((response) => {
-        setItems(response.items);
-        setTotalPages(Math.max(1, Math.ceil(response.total / response.pageSize)));
-      })
-      .catch((error) => console.error("Error al obtener ejercicios realizados:", error));
-  }, [debouncedSearch, tipoId, fecha, page]);
+  const { items, page, setPage, totalPages } = useListaPaginada(
+    (p) => obtenerEjerciciosRealizados(p, debouncedSearch, tipoId === "" ? undefined : tipoId, fecha),
+    [debouncedSearch, tipoId, fecha],
+    "Error al obtener ejercicios realizados:",
+  );
 
   return (
     <>
@@ -87,9 +78,11 @@ export default function EjerciciosRealizados() {
           >
             <MenuItem value="">Todos</MenuItem>
             {tipos.map((t) => (
-              <MenuItem key={t.id} value={t.id}>{t.nombre}</MenuItem>
+              <MenuItem key={t.id} value={t.id}>
+                {t.nombre}
+              </MenuItem>
             ))}
-          </TextField>      
+          </TextField>
           <DateFilter date={fecha} onChange={(d) => setFecha(d)} />
         </Stack>
       </Stack>
@@ -109,17 +102,27 @@ export default function EjerciciosRealizados() {
               <TableRow
                 key={`${e.sesionId}-${e.ejercicioId}`}
                 hover
-                onClick={() => navigate(`/sesiones/${e.sesionId}/ejercicios/${e.ejercicioId}/resultado`, { state: { from: "ejercicios" } })}
+                onClick={() =>
+                  navigate(`/sesiones/${e.sesionId}/ejercicios/${e.ejercicioId}/resultado`, {
+                    state: { from: "ejercicios" },
+                  })
+                }
                 className="cursor-pointer"
               >
-                <TableCell><NameCell initials={e.nombre.charAt(0) + e.apellido.charAt(0)} name={`${e.nombre} ${e.apellido}`} colorId={e.pacienteId} /></TableCell>
+                <TableCell>
+                  <NameCell nombre={e.nombre} apellido={e.apellido} colorId={e.pacienteId} />
+                </TableCell>
                 <TableCell>
                   <Stack direction="row" spacing={1.5} className="items-center">
                     <ExerciseTypeIcon icon={e.tipoEjercicio} size={36} />
-                    <Typography variant="body2" className="font-medium">{e.ejercicio}</Typography>
+                    <Typography variant="body2" className="font-medium">
+                      {e.ejercicio}
+                    </Typography>
                   </Stack>
                 </TableCell>
-                <TableCell><Chip label={e.tipoEjercicio} size="small" variant="outlined" /></TableCell>
+                <TableCell>
+                  <Chip label={e.tipoEjercicio} size="small" variant="outlined" />
+                </TableCell>
                 <TableCell>{formatearCuando(e.fecha)}</TableCell>
               </TableRow>
             ))}

@@ -14,8 +14,7 @@ namespace Backend.Application.Services
     {
         public async Task<Result<ResultadoDetalleDto>> GetAsync(int sesionId, int ejercicioId, CancellationToken ct = default)
         {
-            var psicopedagogoId = usuarioActual.UserId;
-            var detalle = await repository.GetDetalleAsync(sesionId, ejercicioId, psicopedagogoId, ct);
+            var detalle = await repository.GetDetalleAsync(sesionId, ejercicioId, usuarioActual.UserId, ct);
 
             return detalle is null
                 ? Result<ResultadoDetalleDto>.Failure($"El ejercicio {ejercicioId} no está en la sesión {sesionId}.", ErrorCodes.NotFound)
@@ -24,11 +23,10 @@ namespace Backend.Application.Services
 
         public async Task<Result<ResultadoDto>> UpsertAsync(int sesionId, int ejercicioId, UpsertResultadoRequest request, CancellationToken ct = default)
         {
-            var psicopedagogoId = usuarioActual.UserId;
-            if (!await repository.SesionEjercicioPerteneceAsync(sesionId, ejercicioId, psicopedagogoId, ct))
+            if (!await repository.SesionEjercicioPerteneceAsync(sesionId, ejercicioId, usuarioActual.UserId, ct))
             {
                 return Result<ResultadoDto>.Failure(
-                    $"El psicopedagogo {psicopedagogoId} no tiene el ejercicio {ejercicioId} en la sesión {sesionId}.", ErrorCodes.Forbidden);
+                    $"El psicopedagogo {usuarioActual.UserId} no tiene el ejercicio {ejercicioId} en la sesión {sesionId}.", ErrorCodes.Forbidden);
             }
 
             var metricaIds = (request.Metricas ?? []).Select(m => m.MetricaId).Distinct().ToList();
@@ -43,21 +41,32 @@ namespace Backend.Application.Services
                 }
             }
 
-            var resultado = new Resultado
+            var validacion = Resultado.Validar(request.Aciertos, request.Errores, request.TiempoSegundos, request.Observaciones);
+            if (!validacion.EsExitoso)
             {
-                SesionId = sesionId,
-                EjercicioId = ejercicioId,
-                Aciertos = request.Aciertos,
-                Errores = request.Errores,
-                TiempoSegundos = request.TiempoSegundos,
-                Observaciones = request.Observaciones,
-                FechaRegistro = DateTime.Now,
-                ResultadoMetricas = (request.Metricas ?? [])
-                    .Select(m => new ResultadoMetrica { MetricaId = m.MetricaId, Valor = m.Valor })
-                    .ToList()
-            };
+                return Result<ResultadoDto>.Failure(validacion.Error!, ErrorCodes.ValidationError);
+            }
 
-            var guardado = await repository.UpsertAsync(resultado, ct);
+            var ahora = DateTime.Now;
+            var metricas = (request.Metricas ?? []).Select(m => (m.MetricaId, m.Valor)).ToList();
+
+            // Si el ejercicio ya tenía resultado se reemplaza (con la entidad); si no, se crea uno nuevo.
+            var existente = await repository.GetForUpdateAsync(sesionId, ejercicioId, ct);
+            if (existente is null)
+            {
+                await repository.AddAsync(
+                    new Resultado(sesionId, ejercicioId, request.Aciertos, request.Errores, request.TiempoSegundos, request.Observaciones, ahora, metricas), ct);
+            }
+            else
+            {
+                var cambio = existente.Actualizar(request.Aciertos, request.Errores, request.TiempoSegundos, request.Observaciones, ahora, metricas);
+                if (!cambio.EsExitoso)
+                {
+                    return Result<ResultadoDto>.Failure(cambio.Error!, ErrorCodes.ValidationError);
+                }
+
+                await repository.SaveChangesAsync(ct);
+            }
 
             // El repositorio devuelve la entidad ya trackeada sin las Metricas cargadas por nombre; se relee para el DTO.
             var completo = await repository.GetAsync(sesionId, ejercicioId, ct);

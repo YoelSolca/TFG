@@ -37,8 +37,7 @@ namespace Backend.Infrastructure.Repositories
 
             if (existingPsicopedagogo == null) return;
 
-            existingPsicopedagogo.TokenRestablecimiento = tokenHash;
-            existingPsicopedagogo.FechaExpiracionTokenRestablecimiento = ExpiresAt;
+            existingPsicopedagogo.GuardarTokenDeRestablecimiento(tokenHash, ExpiresAt);
 
             await context.SaveChangesAsync(ct);
         }
@@ -51,10 +50,7 @@ namespace Backend.Infrastructure.Repositories
 
             if (existingUsuario == null) return false;
 
-            existingUsuario.Contrasenia = contraseniaHasher.Hash(nuevaContrasenia);
-            existingUsuario.TokenRestablecimiento = null;
-            existingUsuario.FechaExpiracionTokenRestablecimiento = DateTime.MinValue;
-            existingUsuario.FechaRecuperacion = DateTime.Now;
+            existingUsuario.RestablecerContrasenia(contraseniaHasher.Hash(nuevaContrasenia), DateTime.Now);
 
             await context.SaveChangesAsync(ct);
             return true;

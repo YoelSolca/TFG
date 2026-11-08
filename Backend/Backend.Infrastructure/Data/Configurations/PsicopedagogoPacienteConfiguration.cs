@@ -28,6 +28,8 @@ namespace Backend.Infrastructure.Data.Configurations
 
             builder.Property(x => x.FechaInicio).IsRequired();
 
+            builder.Navigation(x => x.Sesiones).UsePropertyAccessMode(PropertyAccessMode.Field);
+
             // 1 a 1: cada atención tiene su propia intervención (índice único implícito en IntervencionId).
             builder.HasOne(x => x.Intervencion)
                 .WithOne(i => i.PsicopedagogoPaciente)

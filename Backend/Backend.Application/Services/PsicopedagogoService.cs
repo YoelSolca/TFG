@@ -57,29 +57,14 @@ namespace Backend.Application.Services
                 return Result<PsicopedagogoDto>.Failure("Ya existe un profesional registrado con esa matrícula.", ErrorCodes.Duplicate);
             }
 
-            var psicopedagogo = new Psicopedagogo
-            {
-                Telefono = request.Telefono,
-                Matricula = matricula,
-                Persona = new Persona
-                {
-                    Nombre = request.Nombre,
-                    Apellido = request.Apellido,
-                    Documento = documento,
-                    Genero = request.Genero,
-                    FechaNacimiento = request.FechaNacimiento,
-                    Usuario = new Usuario
-                    {
-                        CorreoElectronico = correo,
-                        Contrasenia = contraseniaHasher.Hash(request.Contrasenia),
-                        FechaAlta = DateTime.Now,
-                        AceptoTerminos = request.AceptoTerminos,
-                        FechaAceptacionTerminos = DateTime.Now,
-                        Rol = RolUsuario.Psicopedagogo,
-                        FechaSolicitud = DateTime.Now,
-                    }
-                }
-            };
+            var persona = new Persona(request.Nombre, request.Apellido, documento, request.Genero, request.FechaNacimiento);
+            persona.AsignarUsuario(new Usuario(
+                correo,
+                contraseniaHasher.Hash(request.Contrasenia),
+                RolUsuario.Psicopedagogo,
+                DateTime.Now,
+                request.AceptoTerminos));
+            var psicopedagogo = new Psicopedagogo(persona, request.Telefono, request.Direccion.Trim(), matricula);
 
             await repository.AddPsicopedagogoAsync(psicopedagogo, ct);
             logger.LogInformation("Creado psicopedagogo {PsicopedagogoId}", psicopedagogo.PersonaId);
@@ -123,17 +108,6 @@ namespace Backend.Application.Services
 
             var correo = request.CorreoElectronico.Trim().ToLowerInvariant();
             var documento = request.Documento.Trim();
-            var telefono = new string(request.Telefono.Where(char.IsDigit).ToArray());
-
-            if (telefono.Length is < 8 or > 13)
-            {
-                return Result<PerfilDto>.Failure("Teléfono inválido.", ErrorCodes.ValidationError);
-            }
-
-            if (request.FechaNacimiento > DateOnly.FromDateTime(DateTime.Today))
-            {
-                return Result<PerfilDto>.Failure("La fecha de nacimiento no puede ser futura.", ErrorCodes.ValidationError);
-            }
 
             // El correo es con lo que se entra y se recupera la cuenta: para cambiarlo hay que confirmar la contraseña.
             if (!string.Equals(usuario.CorreoElectronico, correo, StringComparison.OrdinalIgnoreCase))
@@ -154,13 +128,18 @@ namespace Backend.Application.Services
                 return Result<PerfilDto>.Failure("Ya existe una persona registrada con ese documento.", ErrorCodes.Duplicate);
             }
 
-            persona.Nombre = request.Nombre.Trim();
-            persona.Apellido = request.Apellido.Trim();
-            persona.Documento = documento;
-            persona.Genero = request.Genero;
-            persona.FechaNacimiento = request.FechaNacimiento;
-            psicopedagogo.Telefono = telefono;
-            usuario.CorreoElectronico = correo;
+            // Las reglas de cada dato están en las entidades; si alguna falla no se guarda nada.
+            var cambios = new[]
+            {
+                persona.ActualizarDatos(request.Nombre, request.Apellido, documento, request.Genero, request.FechaNacimiento, DateOnly.FromDateTime(DateTime.Today)),
+                psicopedagogo.ActualizarContacto(request.Telefono, request.Direccion),
+                usuario.CambiarCorreo(correo)
+            };
+            var falla = cambios.FirstOrDefault(c => !c.EsExitoso);
+            if (falla is not null)
+            {
+                return Result<PerfilDto>.Failure(falla.Error!, ErrorCodes.ValidationError);
+            }
 
             await repository.SaveChangesAsync(ct);
 
@@ -188,10 +167,8 @@ namespace Backend.Application.Services
                 return Result<bool>.Failure("La nueva contraseña debe ser distinta de la actual.", ErrorCodes.ValidationError);
             }
 
-            usuario.Contrasenia = contraseniaHasher.Hash(request.NuevaContrasenia);
-            // Si había un enlace de recuperación pendiente, deja de servir.
-            usuario.TokenRestablecimiento = null;
-            usuario.FechaExpiracionTokenRestablecimiento = DateTime.MinValue;
+            // Si había un enlace de recuperación pendiente, la entidad lo invalida.
+            usuario.CambiarContrasenia(contraseniaHasher.Hash(request.NuevaContrasenia));
 
             await repository.SaveChangesAsync(ct);
 
@@ -209,16 +186,12 @@ namespace Backend.Application.Services
                 return Result<PsicopedagogoDto>.Failure($"Psicopedagogo con el id {psicopedagogoId} no fue encontrado.");
             }
 
-            var usuario = psicopedagogo.Persona.Usuario;
-            usuario.Historial.Add(new HistorialEstadoCuenta
+            // Las reglas del cambio de estado y el registro en el historial están en la entidad.
+            var cambio = psicopedagogo.Persona.Usuario.CambiarEstado(request.Estado, usuarioActual.UserId, request.Motivo, DateTime.Now);
+            if (!cambio.EsExitoso)
             {
-                AdministradorId = usuarioActual.UserId,
-                EstadoAnterior = usuario.Estado,
-                EstadoNuevo = request.Estado,
-                Motivo = request.Motivo,
-                Fecha = DateTime.Now
-            });
-            usuario.Estado = request.Estado;
+                return Result<PsicopedagogoDto>.Failure(cambio.Error!, ErrorCodes.ValidationError);
+            }
 
             await repository.SaveChangesAsync(ct);
 
