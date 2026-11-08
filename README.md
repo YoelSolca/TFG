@@ -180,20 +180,16 @@ npm run dev
 
 La aplicación queda disponible en `http://localhost:5173`.
 
-### 6. Usuarios de prueba (solo en desarrollo)
+### 6. Usuarios de prueba 
 
 | Rol | Correo | Contraseña |
 |---|---|---|
 | Administrador | admin@demo.com | Admin1234! |
 | Psicopedagogo | psico@demo.com | Demo1234! |
 
-> Si no se configura el servidor de correo, en desarrollo el código de verificación se muestra en la pantalla y en la consola del navegador, para poder probar el ingreso.
-
 
 ---
 
 ## Autor
 
-**Yoel Cristian Carreras Solca**
-Ingeniería en Software, Universidad Siglo 21
-Trabajo Final de Grado, 2026
+Yoel Cristian Carreras Solca · Ingeniería en Software · Universidad Siglo 21 · Trabajo Final de Grado, 2026
