@@ -58,6 +58,7 @@ export default function Historial() {
     page,
     setPage,
     totalPages,
+    cargado,
   } = useListaPaginada(
     (p) => obtenerHistorialPaciente(id!, type === "Todas" ? undefined : Number(type), fecha, p),
     [id, type, fecha],
@@ -106,6 +107,15 @@ export default function Historial() {
           </Box>
         </Card>
       ))}
+      {cargado && !historial.length && (
+        <Card className="p-10 text-center">
+          <Typography color="text.secondary">
+            {type !== "Todas" || fecha
+              ? "No hay ejercicios en el historial que coincidan con los filtros."
+              : "Este paciente todavía no tiene ejercicios en su historial."}
+          </Typography>
+        </Card>
+      )}
       <CenteredPagination page={page} count={totalPages} onChange={(t) => setPage(t)} />
     </>
   );

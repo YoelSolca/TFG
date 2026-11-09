@@ -13,6 +13,7 @@ import {
   Card,
   TextField,
   InputAdornment,
+  Typography,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { useState } from "react";
@@ -34,6 +35,7 @@ export default function Sesiones() {
     page,
     setPage,
     totalPages,
+    cargado,
   } = useListaPaginada(
     (p) => obtenerSesiones(p, debouncedSearch, fecha),
     [debouncedSearch, fecha],
@@ -102,6 +104,17 @@ export default function Sesiones() {
                 <TableCell>{s.objetivo}</TableCell>
               </TableRow>
             ))}
+            {cargado && !sessions.length && (
+              <TableRow>
+                <TableCell colSpan={4} align="center" className="py-10">
+                  <Typography color="text.secondary">
+                    {debouncedSearch || fecha
+                      ? "No hay sesiones que coincidan con la búsqueda."
+                      : "Todavía no hay sesiones registradas."}
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
         <TablePager page={page} count={totalPages} onChange={(p) => setPage(p)} />
