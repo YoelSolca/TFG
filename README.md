@@ -36,8 +36,7 @@ https://github.com/user-attachments/assets/e99dc6d7-56b4-404a-b06d-9cc58abfd140
 
 ### Psicopedagogo
 - **Registro** con datos personales y matrícula profesional. La cuenta queda pendiente hasta que la aprueba el administrador.
-- **Ingreso con verificación en dos pasos**: después del correo y la contraseña, se envía un código de 6 dígitos al correo registrado, que vence a los 5 minutos y se puede volver a pedir pasados 30 segundos.
-- **Bloqueo temporal** de la cuenta durante 15 minutos después de 5 intentos fallidos.
+- **Ingreso** con correo y contraseña. Las cuentas pendientes, rechazadas o suspendidas no pueden ingresar al sistema.
 - **Recuperación de contraseña** mediante un enlace enviado por correo, que vence a las 24 horas.
 - **Página principal** con un resumen de pacientes activos, sesiones, ejercicios realizados e informes generados.
 - **Pacientes**: alta, edición, objetivos de la intervención, tipos de dificultad, historial y evolución.
@@ -51,6 +50,15 @@ https://github.com/user-attachments/assets/e99dc6d7-56b4-404a-b06d-9cc58abfd140
 
 ---
 
+## En desarrollo
+
+Funciones de seguridad previstas que todavía no están implementadas en esta versión del prototipo:
+
+- **Verificación en dos pasos por correo**: después del correo y la contraseña, se enviaría un código de 6 dígitos al correo registrado, con vencimiento a los 5 minutos y reenvío disponible pasados 30 segundos.
+- **Bloqueo temporal de la cuenta** durante 15 minutos después de 5 intentos fallidos de ingreso.
+
+---
+
 ## Tecnologías
 
 | Capa | Tecnologías |
@@ -58,7 +66,7 @@ https://github.com/user-attachments/assets/e99dc6d7-56b4-404a-b06d-9cc58abfd140
 | Frontend | React 19, TypeScript, Vite, Material UI (MUI), Tailwind CSS, Axios |
 | Backend | .NET 10 (C#), ASP.NET Core Web API, arquitectura limpia, Entity Framework Core |
 | Base de datos | SQL Server |
-| Seguridad | JWT, contraseñas con bcrypt, verificación en dos pasos por correo, bloqueo por intentos, HTTPS |
+| Seguridad | JWT, contraseñas con bcrypt, bloqueo de cuentas suspendidas o rechazadas, HTTPS |
 | Correo | SMTP con MailKit |
 | Inteligencia artificial | Claude Sonnet 5.5 (API de Anthropic) |
 | Gestión | Git |
@@ -79,7 +87,7 @@ https://github.com/user-attachments/assets/e99dc6d7-56b4-404a-b06d-9cc58abfd140
         ├── components/           # Componentes reutilizables
         ├── layout/               # Estructuras de página
         ├── actions/              # Llamadas a la API
-        ├── Model/                # Tipos de datos
+        ├── models/               # Tipos de datos
         └── utils/                # Funciones auxiliares
 ```
 
@@ -92,12 +100,14 @@ El backend sigue los principios de **arquitectura limpia**: el dominio no depend
 - [.NET SDK 10](https://dotnet.microsoft.com/download/dotnet/10.0)
 - [Node.js](https://nodejs.org/) 20.19 o superior (o 22.12 o superior)
 - [SQL Server](https://www.microsoft.com/es-es/sql-server/sql-server-downloads) (Express, Developer o LocalDB)
-- Herramienta de Entity Framework Core:
+- Herramienta de Entity Framework Core (si ya la tenías instalada, actualizala con `dotnet tool update --global dotnet-ef`):
   ```bash
   dotnet tool install --global dotnet-ef
   ```
-- Una clave de la [API de Anthropic](https://console.anthropic.com/) para generar los informes con IA
-- Una cuenta de correo con acceso SMTP para enviar los códigos de verificación y los enlaces de recuperación (por ejemplo, Gmail con una [contraseña de aplicación](https://support.google.com/accounts/answer/185833))
+- Conexión a internet: las imágenes de los juegos se cargan desde GitHub Pages.
+- **Opcionales** (el sistema arranca sin ellas, pero esas funciones no andan):
+  - Una clave de la [API de Anthropic](https://console.anthropic.com/), necesaria para generar los informes con IA.
+  - Una cuenta de correo con acceso SMTP, necesaria para enviar los enlaces de recuperación de contraseña (por ejemplo, Gmail con una [contraseña de aplicación](https://support.google.com/accounts/answer/185833)).
 
 ---
 
@@ -112,7 +122,7 @@ cd TFG
 
 ### 2. Configurar el backend
 
-Crear el archivo `Backend/Backend.Api/appsettings.Local.json`. Este archivo **no se sube al repositorio** (está en el `.gitignore`) y es donde van las claves:
+Crear el archivo `Backend/Backend.Api/appsettings.Local.json`. Este archivo **no se sube al repositorio** (está en el `.gitignore`) y es donde van las claves. **Este paso es obligatorio**, porque la cadena de conexión que trae el repositorio apunta al servidor del autor:
 
 ```json
 {
@@ -138,6 +148,7 @@ Crear el archivo `Backend/Backend.Api/appsettings.Local.json`. Este archivo **no
 ```
 
 > En `Server=` poné el nombre de tu instancia de SQL Server (por ejemplo `localhost\SQLEXPRESS` o `(localdb)\MSSQLLocalDB`).
+> Las secciones `Anthropic` y `Email` pueden omitirse si solo querés probar el resto del sistema.
 
 ### 3. Crear la base de datos
 
@@ -150,7 +161,10 @@ Las migraciones crean todas las tablas y cargan los catálogos (tipos de ejercic
 
 ### 4. Ejecutar el backend
 
+Confiar en el certificado HTTPS de desarrollo (una sola vez por computadora) y ejecutar:
+
 ```bash
+dotnet dev-certs https --trust
 dotnet run --project Backend.Api --launch-profile https
 ```
 
@@ -160,7 +174,7 @@ Al ejecutarse en modo desarrollo, se cargan automáticamente **datos de prueba**
 
 ### 5. Configurar y ejecutar el frontend
 
-En otra terminal:
+En otra terminal, desde la carpeta raíz del repositorio:
 
 ```bash
 cd Frontend
@@ -181,13 +195,12 @@ npm run dev
 
 La aplicación queda disponible en `http://localhost:5173`.
 
-### 6. Usuarios de prueba 
+### 6. Usuarios de prueba
 
 | Rol | Correo | Contraseña |
 |---|---|---|
 | Administrador | admin@demo.com | Admin1234! |
 | Psicopedagogo | psico@demo.com | Demo1234! |
-
 
 ---
 
