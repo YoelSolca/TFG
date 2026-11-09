@@ -39,7 +39,7 @@ export default function EjerciciosRealizados() {
 
   const debouncedSearch = useDebounce(search);
 
-  const { items, page, setPage, totalPages } = useListaPaginada(
+  const { items, page, setPage, totalPages, cargado } = useListaPaginada(
     (p) => obtenerEjerciciosRealizados(p, debouncedSearch, tipoId === "" ? undefined : tipoId, fecha),
     [debouncedSearch, tipoId, fecha],
     "Error al obtener ejercicios realizados:",
@@ -126,6 +126,17 @@ export default function EjerciciosRealizados() {
                 <TableCell>{formatearCuando(e.fecha)}</TableCell>
               </TableRow>
             ))}
+            {cargado && !items.length && (
+              <TableRow>
+                <TableCell colSpan={4} align="center" className="py-10">
+                  <Typography color="text.secondary">
+                    {debouncedSearch || tipoId !== "" || fecha
+                      ? "No hay ejercicios que coincidan con los filtros."
+                      : "Todavía no hay ejercicios realizados."}
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
         <TablePager page={page} count={totalPages} onChange={(p) => setPage(p)} />

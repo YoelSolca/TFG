@@ -22,6 +22,8 @@ interface Rango {
   hasta: string;
 }
 
+const PERIODO_PERSONALIZADO = "personalizado";
+
 // Los períodos se miden desde hoy hacia atrás.
 function rangoDe(valor: string): Rango {
   const { desde, hasta } = rangoDesdeHoy(PERIODOS_RAPIDOS.find((p) => p.valor === valor)!.meses);
@@ -67,14 +69,17 @@ export default function Evolucion() {
   const porArea = useMemo(() => ejerciciosPorArea(sesiones), [sesiones]);
   const cuesta = useMemo(() => dondeMasCuesta(sesiones), [sesiones]);
 
+  // Elegir un período rápido recalcula las fechas (desde hoy hacia atrás); "Personalizado" deja las que están.
   const cambiarPeriodo = (valor: string) => {
     setPeriodo(valor);
+    if (valor !== PERIODO_PERSONALIZADO) setRango(rangoDe(valor));
   };
 
   // Tocar una fecha a mano pasa el selector a "Personalizado".
   const cambiarFecha = (campo: keyof Rango, fecha: Dayjs | null) => {
     if (!fecha?.isValid()) return;
     setRango((r) => ({ ...r, [campo]: fecha.format(FORMATO_API) }));
+    setPeriodo(PERIODO_PERSONALIZADO);
   };
 
   // ───────────── Parte A: pantalla ─────────────
@@ -116,6 +121,7 @@ export default function Evolucion() {
               {p.etiqueta}
             </MenuItem>
           ))}
+          <MenuItem value={PERIODO_PERSONALIZADO}>Personalizado</MenuItem>
         </TextField>
       </Stack>
 

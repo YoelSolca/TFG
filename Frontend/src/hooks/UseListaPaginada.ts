@@ -14,6 +14,8 @@ export function useListaPaginada<T>(
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [version, setVersion] = useState(0);
+  // Pasa a true cuando llega la primera respuesta: sirve para mostrar "no hay nada" sin que parpadee mientras carga.
+  const [cargado, setCargado] = useState(false);
 
   // Se guarda la última versión de `cargar` para no tener que volver a pedir en cada render.
   const cargarRef = useRef(cargar);
@@ -37,6 +39,7 @@ export function useListaPaginada<T>(
         if (!vigente) return; // llegó tarde: ya se pidió otra cosa
         setItems(respuesta.items);
         setTotalPages(Math.max(1, Math.ceil(respuesta.total / respuesta.pageSize)));
+        setCargado(true);
       })
       .catch((error) => console.error(mensajeError, error));
     return () => {
@@ -44,5 +47,5 @@ export function useListaPaginada<T>(
     };
   }, [clave, page, version, mensajeError]);
 
-  return { items, page, setPage, totalPages, recargar: () => setVersion((v) => v + 1) };
+  return { items, page, setPage, totalPages, cargado, recargar: () => setVersion((v) => v + 1) };
 }
