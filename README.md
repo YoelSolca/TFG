@@ -25,9 +25,10 @@
 
 ## Video demostrativo
 
-▶️ **[Ver el recorrido por la aplicación](PEGAR_AQUI_EL_ENLACE_DEL_VIDEO)**
-
 El video muestra las principales funcionalidades del sistema: registro y aprobación de cuentas, ingreso al sistema, gestión de pacientes, catálogo de ejercicios, planificación y realización de sesiones, seguimiento de la evolución y generación de informes con IA.
+
+
+https://github.com/user-attachments/assets/e99dc6d7-56b4-404a-b06d-9cc58abfd140
 
 ---
 
